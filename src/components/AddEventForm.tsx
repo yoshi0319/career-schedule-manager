@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, CalendarPlus, X, AlertTriangle, Calendar } from 'lucide-react';
 import { Company, Event, EventType, TimeSlot } from '@/types';
-import { checkTimeSlotConflict, formatTimeSlotWithDate } from '@/lib/conflictDetection';
+import { checkTimeSlotConflict, formatTimeSlotWithDate, addBufferToTimeSlot } from '@/lib/conflictDetection';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 
@@ -46,6 +46,7 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
   const [startTimeInput, setStartTimeInput] = useState<Date | undefined>(undefined);
   const [endTimeInput, setEndTimeInput] = useState<Date | undefined>(undefined);
   const [conflicts, setConflicts] = useState<{ hasConflict: boolean; conflictingEvents: Event[] }>({ hasConflict: false, conflictingEvents: [] });
+  const [candidateAddError, setCandidateAddError] = useState<string>("");
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -59,22 +60,39 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
     },
   });
 
+  function timeSlotsOverlap(a: TimeSlot, b: TimeSlot): boolean {
+    return a.startTime < b.endTime && a.endTime > b.startTime;
+  }
+
   const addCandidateSlot = () => {
-    if (startTimeInput && endTimeInput) {
-      if (startTimeInput < endTimeInput) {
-        const newSlot: TimeSlot = { startTime: startTimeInput, endTime: endTimeInput };
-        
-        // Check for conflicts with existing events
-        const conflictResult = checkTimeSlotConflict(newSlot, events);
-        setConflicts(conflictResult);
-        
-        if (!conflictResult.hasConflict) {
-          setCandidateSlots(prev => [...prev, newSlot]);
-          setStartTimeInput(undefined);
-          setEndTimeInput(undefined);
-        }
+    setCandidateAddError("");
+    if (!startTimeInput || !endTimeInput) return;
+    if (!(startTimeInput < endTimeInput)) return;
+
+    const newSlot: TimeSlot = { startTime: startTimeInput, endTime: endTimeInput };
+
+    // 1) 既存イベントとの競合（前後30分含む）
+    const conflictResult = checkTimeSlotConflict(newSlot, events);
+    setConflicts(conflictResult);
+    if (conflictResult.hasConflict) {
+      return;
+    }
+
+    // 2) 既に追加済みの候補日との競合（前後30分含む）
+    for (const slot of candidateSlots) {
+      const buffered = addBufferToTimeSlot(slot);
+      if (timeSlotsOverlap(newSlot, buffered)) {
+        setCandidateAddError("既に追加済みの候補日の前後30分内と重複しています。");
+        return;
       }
     }
+
+    // 追加し、日時昇順に並べ替える
+    setCandidateSlots(prev =>
+      [...prev, newSlot].sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+    );
+    setStartTimeInput(undefined);
+    setEndTimeInput(undefined);
   };
 
   const removeCandidateSlot = (index: number) => {
@@ -265,18 +283,24 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
                 時間枠を追加
               </Button>
               
-              {conflicts.hasConflict && (
+              {(conflicts.hasConflict || candidateAddError) && (
                 <Alert className="border-destructive bg-destructive/5">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                   <AlertDescription className="text-destructive">
-                    <span className="font-medium">この時間は以下の予定と重複しています（前後30分を含む）:</span>
-                    <ul className="mt-2 ml-4 space-y-1">
-                      {conflicts.conflictingEvents.map((event, idx) => (
-                        <li key={idx} className="list-disc text-sm">
-                          <span className="font-medium">{event.companyName}</span> - {event.title}
-                        </li>
-                      ))}
-                    </ul>
+                    {candidateAddError ? (
+                      <span className="font-medium">{candidateAddError}</span>
+                    ) : (
+                      <>
+                        <span className="font-medium">この時間は以下の予定と重複しています（前後30分を含む）:</span>
+                        <ul className="mt-2 ml-4 space-y-1">
+                          {conflicts.conflictingEvents.map((event, idx) => (
+                            <li key={idx} className="list-disc text-sm">
+                              <span className="font-medium">{event.companyName}</span> - {event.title}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
