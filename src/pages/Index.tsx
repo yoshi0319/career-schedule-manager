@@ -8,6 +8,7 @@ import { useJobHuntingData } from '@/hooks/useJobHuntingData';
 import { CompanyCard } from '@/components/CompanyCard';
 import { EventCard } from '@/components/EventCard';
 import { AddCompanyForm } from '@/components/AddCompanyForm';
+import { AddEventForm } from '@/components/AddEventForm';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
@@ -16,6 +17,7 @@ const Index = () => {
     companies, 
     events, 
     addCompany, 
+    addEvent,
     updateEventStatus, 
     getUpcomingEvents 
   } = useJobHuntingData();
@@ -131,7 +133,13 @@ const Index = () => {
           
           <TabsContent value="events" className="space-y-6">
             <div>
-              <h2 className="text-xl font-semibold mb-4">予定一覧</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">予定一覧</h2>
+                <AddEventForm 
+                  companies={companies} 
+                  onAddEvent={addEvent} 
+                />
+              </div>
               {events.length === 0 ? (
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center py-12">

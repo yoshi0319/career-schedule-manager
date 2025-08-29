@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Event, EventType, EventStatus } from '@/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { EventConfirmationModal } from './EventConfirmationModal';
 
 interface EventCardProps {
   event: Event;
@@ -34,7 +36,12 @@ const statusColors: Record<EventStatus, string> = {
 };
 
 export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const displayDate = event.confirmedDate || event.candidateDates[0];
+  
+  const handleConfirmDate = (selectedDate: Date) => {
+    onUpdateStatus(event.id, 'confirmed', selectedDate);
+  };
   
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -97,7 +104,7 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
             <>
               <Button
                 size="sm"
-                onClick={() => onUpdateStatus(event.id, 'confirmed', event.candidateDates[0])}
+                onClick={() => setShowConfirmModal(true)}
               >
                 確定
               </Button>
@@ -121,6 +128,13 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
           )}
         </div>
       </CardContent>
+      
+      <EventConfirmationModal
+        event={event}
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmDate}
+      />
     </Card>
   );
 };
