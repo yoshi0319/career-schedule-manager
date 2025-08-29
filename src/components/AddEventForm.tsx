@@ -64,6 +64,22 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
     return a.startTime < b.endTime && a.endTime > b.startTime;
   }
 
+  // 予定一覧に表示されている企業の候補時間を全て取得
+  const getAllExistingCandidateSlots = (): Array<{ slot: TimeSlot; event: Event }> => {
+    const allSlots: Array<{ slot: TimeSlot; event: Event }> = [];
+    
+    // 既存のイベントから候補時間を取得
+    events.forEach(event => {
+      if (event.status === 'candidate') {
+        event.candidateSlots.forEach(slot => {
+          allSlots.push({ slot, event });
+        });
+      }
+    });
+    
+    return allSlots;
+  };
+
   const addCandidateSlot = () => {
     setCandidateAddError("");
     if (!startTimeInput || !endTimeInput) return;
@@ -78,7 +94,17 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
       return;
     }
 
-    // 2) 既に追加済みの候補日との競合（前後30分含む）
+    // 2) 予定一覧に表示されている企業の候補時間との競合（前後30分含む）
+    const existingCandidateSlots = getAllExistingCandidateSlots();
+    for (const { slot, event } of existingCandidateSlots) {
+      const buffered = addBufferToTimeSlot(slot);
+      if (timeSlotsOverlap(newSlot, buffered)) {
+        setCandidateAddError(`予定一覧に表示されている企業「${event.companyName}」の候補時間と重複しています（前後30分を含む）。`);
+        return;
+      }
+    }
+
+    // 3) 既に追加済みの候補日との競合（前後30分含む）
     for (const slot of candidateSlots) {
       const buffered = addBufferToTimeSlot(slot);
       if (timeSlotsOverlap(newSlot, buffered)) {
@@ -288,7 +314,12 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
                   <AlertTriangle className="h-4 w-4 text-destructive" />
                   <AlertDescription className="text-destructive">
                     {candidateAddError ? (
-                      <span className="font-medium">{candidateAddError}</span>
+                      <div className="space-y-2">
+                        <span className="font-medium">{candidateAddError}</span>
+                        <p className="text-sm opacity-90">
+                          移動時間や面接前後の準備時間を考慮して、前後30分のバッファを設けています。
+                        </p>
+                      </div>
                     ) : (
                       <>
                         <span className="font-medium">この時間は以下の予定と重複しています（前後30分を含む）:</span>
