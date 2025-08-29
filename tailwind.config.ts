@@ -61,6 +61,22 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				candidate: {
+					DEFAULT: 'hsl(var(--candidate))',
+					foreground: 'hsl(var(--candidate-foreground))'
+				},
+				confirmed: {
+					DEFAULT: 'hsl(var(--confirmed))',
+					foreground: 'hsl(var(--confirmed-foreground))'
+				},
+				pending: {
+					DEFAULT: 'hsl(var(--pending))',
+					foreground: 'hsl(var(--pending-foreground))'
+				},
+				rejected: {
+					DEFAULT: 'hsl(var(--rejected))',
+					foreground: 'hsl(var(--rejected-foreground))'
 				}
 			},
 			borderRadius: {
