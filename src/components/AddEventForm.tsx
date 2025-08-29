@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, CalendarPlus, X, AlertTriangle } from 'lucide-react';
+import { Plus, CalendarPlus, X, AlertTriangle, Calendar } from 'lucide-react';
 import { Company, Event, EventType, TimeSlot } from '@/types';
 import { checkTimeSlotConflict, formatTimeSlotWithDate } from '@/lib/conflictDetection';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 const eventSchema = z.object({
   title: z.string().min(1, '予定名を入力してください'),
@@ -42,8 +43,8 @@ const eventTypeOptions = [
 export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [candidateSlots, setCandidateSlots] = useState<TimeSlot[]>([]);
-  const [startTimeInput, setStartTimeInput] = useState('');
-  const [endTimeInput, setEndTimeInput] = useState('');
+  const [startTimeInput, setStartTimeInput] = useState<Date | undefined>(undefined);
+  const [endTimeInput, setEndTimeInput] = useState<Date | undefined>(undefined);
   const [conflicts, setConflicts] = useState<{ hasConflict: boolean; conflictingEvents: Event[] }>({ hasConflict: false, conflictingEvents: [] });
 
   const form = useForm<EventFormData>({
@@ -60,11 +61,8 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
 
   const addCandidateSlot = () => {
     if (startTimeInput && endTimeInput) {
-      const startTime = new Date(startTimeInput);
-      const endTime = new Date(endTimeInput);
-      
-      if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime()) && startTime < endTime) {
-        const newSlot: TimeSlot = { startTime, endTime };
+      if (startTimeInput < endTimeInput) {
+        const newSlot: TimeSlot = { startTime: startTimeInput, endTime: endTimeInput };
         
         // Check for conflicts with existing events
         const conflictResult = checkTimeSlotConflict(newSlot, events);
@@ -72,8 +70,8 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
         
         if (!conflictResult.hasConflict) {
           setCandidateSlots(prev => [...prev, newSlot]);
-          setStartTimeInput('');
-          setEndTimeInput('');
+          setStartTimeInput(undefined);
+          setEndTimeInput(undefined);
         }
       }
     }
@@ -109,8 +107,8 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
     // Reset form
     form.reset();
     setCandidateSlots([]);
-    setStartTimeInput('');
-    setEndTimeInput('');
+    setStartTimeInput(undefined);
+    setEndTimeInput(undefined);
     setConflicts({ hasConflict: false, conflictingEvents: [] });
     setIsOpen(false);
   };
@@ -231,23 +229,28 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
               />
             )}
 
-            <div className="space-y-3">
-              <FormLabel>候補日程</FormLabel>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Input
-                    type="datetime-local"
-                    placeholder="開始時間"
-                    value={startTimeInput}
-                    onChange={(e) => setStartTimeInput(e.target.value)}
+            <div className="space-y-4">
+              <div>
+                <FormLabel className="text-base font-medium">候補日程</FormLabel>
+                <p className="text-sm text-muted-foreground mt-1">
+                  面接可能な日時を複数設定してください（5分刻みで選択可能）
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">開始時間</label>
+                  <DateTimePicker
+                    date={startTimeInput}
+                    onDateChange={setStartTimeInput}
+                    placeholder="開始時間を選択"
                   />
                 </div>
-                <div>
-                  <Input
-                    type="datetime-local"
-                    placeholder="終了時間"
-                    value={endTimeInput}
-                    onChange={(e) => setEndTimeInput(e.target.value)}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">終了時間</label>
+                  <DateTimePicker
+                    date={endTimeInput}
+                    onDateChange={setEndTimeInput}
+                    placeholder="終了時間を選択"
                   />
                 </div>
               </div>
@@ -255,7 +258,7 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
                 type="button"
                 variant="outline"
                 onClick={addCandidateSlot}
-                disabled={!startTimeInput || !endTimeInput}
+                disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput}
                 className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -263,14 +266,14 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
               </Button>
               
               {conflicts.hasConflict && (
-                <Alert className="border-destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    この時間は以下の予定と重複しています（前後30分を含む）:
-                    <ul className="mt-1 ml-4">
+                <Alert className="border-destructive bg-destructive/5">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <AlertDescription className="text-destructive">
+                    <span className="font-medium">この時間は以下の予定と重複しています（前後30分を含む）:</span>
+                    <ul className="mt-2 ml-4 space-y-1">
                       {conflicts.conflictingEvents.map((event, idx) => (
-                        <li key={idx} className="list-disc">
-                          {event.companyName} - {event.title}
+                        <li key={idx} className="list-disc text-sm">
+                          <span className="font-medium">{event.companyName}</span> - {event.title}
                         </li>
                       ))}
                     </ul>
@@ -279,31 +282,42 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
               )}
               
               {candidateSlots.length > 0 && (
-                <Card>
-                  <CardContent className="p-3">
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium">追加された候補日程</div>
-                      {candidateSlots.map((slot, index) => (
-                        <div key={index} className="flex items-center justify-between text-sm">
-                          <span>{formatTimeSlotWithDate(slot)}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeCandidateSlot(index)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+                <Card className="border-green-200 bg-green-50/50">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm font-medium text-green-800">追加された候補日程 ({candidateSlots.length}件)</span>
+                      </div>
+                      <div className="space-y-2">
+                        {candidateSlots.map((slot, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-green-200">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-green-600" />
+                              <span className="text-sm font-medium">{formatTimeSlotWithDate(slot)}</span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeCandidateSlot(index)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               )}
               
               {candidateSlots.length === 0 && (
-                <div className="text-sm text-muted-foreground">
-                  候補日程を最低1つ追加してください
+                <div className="text-center py-4 text-sm text-muted-foreground bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
+                  <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                  <p>候補日程を最低1つ追加してください</p>
+                  <p className="text-xs mt-1">開始時間と終了時間を選択して「時間枠を追加」をクリック</p>
                 </div>
               )}
             </div>
