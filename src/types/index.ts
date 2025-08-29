@@ -12,6 +12,11 @@ export interface Company {
   updatedAt: Date;
 }
 
+export interface TimeSlot {
+  startTime: Date;
+  endTime: Date;
+}
+
 export interface Event {
   id: string;
   companyId: string;
@@ -19,8 +24,8 @@ export interface Event {
   title: string;
   type: EventType;
   status: EventStatus;
-  candidateDates: Date[];
-  confirmedDate?: Date;
+  candidateSlots: TimeSlot[];
+  confirmedSlot?: TimeSlot;
   location?: string;
   isOnline: boolean;
   notes?: string;

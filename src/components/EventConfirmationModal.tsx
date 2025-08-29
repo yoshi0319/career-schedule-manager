@@ -3,15 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Event } from '@/types';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
+import { Event, TimeSlot } from '@/types';
+import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
 
 interface EventConfirmationModalProps {
   event: Event;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (selectedDate: Date) => void;
+  onConfirm: (selectedSlot: TimeSlot) => void;
 }
 
 export const EventConfirmationModal = ({ 
@@ -20,12 +19,19 @@ export const EventConfirmationModal = ({
   onClose, 
   onConfirm 
 }: EventConfirmationModalProps) => {
-  const [selectedDate, setSelectedDate] = useState<string>(event.candidateDates[0]?.toISOString() || '');
+  const [selectedSlot, setSelectedSlot] = useState<string>(
+    event.candidateSlots[0] ? JSON.stringify(event.candidateSlots[0]) : ''
+  );
 
   const handleConfirm = () => {
-    if (selectedDate) {
-      const date = new Date(selectedDate);
-      onConfirm(date);
+    if (selectedSlot) {
+      const slot: TimeSlot = JSON.parse(selectedSlot);
+      // Convert string dates back to Date objects
+      const timeSlot: TimeSlot = {
+        startTime: new Date(slot.startTime),
+        endTime: new Date(slot.endTime)
+      };
+      onConfirm(timeSlot);
       onClose();
     }
   };
@@ -45,21 +51,21 @@ export const EventConfirmationModal = ({
           <div>
             <Label className="text-base font-medium">希望日程を選択してください</Label>
             <RadioGroup 
-              value={selectedDate} 
-              onValueChange={setSelectedDate}
+              value={selectedSlot} 
+              onValueChange={setSelectedSlot}
               className="mt-3"
             >
-              {event.candidateDates.map((date, index) => (
+              {event.candidateSlots.map((slot, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   <RadioGroupItem 
-                    value={date.toISOString()} 
-                    id={`date-${index}`}
+                    value={JSON.stringify(slot)} 
+                    id={`slot-${index}`}
                   />
                   <Label 
-                    htmlFor={`date-${index}`}
+                    htmlFor={`slot-${index}`}
                     className="text-sm font-normal cursor-pointer"
                   >
-                    {format(date, 'M月d日(E) HH:mm', { locale: ja })}
+                    {formatTimeSlotWithDate(slot)}
                   </Label>
                 </div>
               ))}
@@ -73,7 +79,7 @@ export const EventConfirmationModal = ({
           </Button>
           <Button 
             onClick={handleConfirm}
-            disabled={!selectedDate}
+            disabled={!selectedSlot}
           >
             確定
           </Button>

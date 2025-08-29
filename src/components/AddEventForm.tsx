@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, CalendarPlus, X } from 'lucide-react';
-import { Company, Event, EventType } from '@/types';
+import { Plus, CalendarPlus, X, AlertTriangle } from 'lucide-react';
+import { Company, Event, EventType, TimeSlot } from '@/types';
+import { checkTimeSlotConflict, formatTimeSlotWithDate } from '@/lib/conflictDetection';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const eventSchema = z.object({
   title: z.string().min(1, '予定名を入力してください'),
@@ -26,6 +28,7 @@ type EventFormData = z.infer<typeof eventSchema>;
 
 interface AddEventFormProps {
   companies: Company[];
+  events: Event[];
   onAddEvent: (event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
@@ -36,10 +39,12 @@ const eventTypeOptions = [
   { value: 'final_interview', label: '最終面接' },
 ];
 
-export const AddEventForm = ({ companies, onAddEvent }: AddEventFormProps) => {
+export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [candidateDates, setCandidateDates] = useState<Date[]>([]);
-  const [dateInput, setDateInput] = useState('');
+  const [candidateSlots, setCandidateSlots] = useState<TimeSlot[]>([]);
+  const [startTimeInput, setStartTimeInput] = useState('');
+  const [endTimeInput, setEndTimeInput] = useState('');
+  const [conflicts, setConflicts] = useState<{ hasConflict: boolean; conflictingEvents: Event[] }>({ hasConflict: false, conflictingEvents: [] });
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -53,22 +58,34 @@ export const AddEventForm = ({ companies, onAddEvent }: AddEventFormProps) => {
     },
   });
 
-  const addCandidateDate = () => {
-    if (dateInput) {
-      const date = new Date(dateInput);
-      if (!isNaN(date.getTime())) {
-        setCandidateDates(prev => [...prev, date]);
-        setDateInput('');
+  const addCandidateSlot = () => {
+    if (startTimeInput && endTimeInput) {
+      const startTime = new Date(startTimeInput);
+      const endTime = new Date(endTimeInput);
+      
+      if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime()) && startTime < endTime) {
+        const newSlot: TimeSlot = { startTime, endTime };
+        
+        // Check for conflicts with existing events
+        const conflictResult = checkTimeSlotConflict(newSlot, events);
+        setConflicts(conflictResult);
+        
+        if (!conflictResult.hasConflict) {
+          setCandidateSlots(prev => [...prev, newSlot]);
+          setStartTimeInput('');
+          setEndTimeInput('');
+        }
       }
     }
   };
 
-  const removeCandidateDate = (index: number) => {
-    setCandidateDates(prev => prev.filter((_, i) => i !== index));
+  const removeCandidateSlot = (index: number) => {
+    setCandidateSlots(prev => prev.filter((_, i) => i !== index));
+    setConflicts({ hasConflict: false, conflictingEvents: [] });
   };
 
   const onSubmit = (data: EventFormData) => {
-    if (candidateDates.length === 0) {
+    if (candidateSlots.length === 0) {
       return;
     }
 
@@ -81,7 +98,7 @@ export const AddEventForm = ({ companies, onAddEvent }: AddEventFormProps) => {
       title: data.title,
       type: data.type as EventType,
       status: 'candidate',
-      candidateDates: candidateDates.sort((a, b) => a.getTime() - b.getTime()),
+      candidateSlots: candidateSlots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime()),
       isOnline: data.isOnline,
       location: data.isOnline ? undefined : data.location,
       notes: data.notes,
@@ -91,8 +108,10 @@ export const AddEventForm = ({ companies, onAddEvent }: AddEventFormProps) => {
     
     // Reset form
     form.reset();
-    setCandidateDates([]);
-    setDateInput('');
+    setCandidateSlots([]);
+    setStartTimeInput('');
+    setEndTimeInput('');
+    setConflicts({ hasConflict: false, conflictingEvents: [] });
     setIsOpen(false);
   };
 
@@ -214,44 +233,64 @@ export const AddEventForm = ({ companies, onAddEvent }: AddEventFormProps) => {
 
             <div className="space-y-3">
               <FormLabel>候補日程</FormLabel>
-              <div className="flex gap-2">
-                <Input
-                  type="datetime-local"
-                  value={dateInput}
-                  onChange={(e) => setDateInput(e.target.value)}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addCandidateDate}
-                  disabled={!dateInput}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Input
+                    type="datetime-local"
+                    placeholder="開始時間"
+                    value={startTimeInput}
+                    onChange={(e) => setStartTimeInput(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Input
+                    type="datetime-local"
+                    placeholder="終了時間"
+                    value={endTimeInput}
+                    onChange={(e) => setEndTimeInput(e.target.value)}
+                  />
+                </div>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addCandidateSlot}
+                disabled={!startTimeInput || !endTimeInput}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                時間枠を追加
+              </Button>
               
-              {candidateDates.length > 0 && (
+              {conflicts.hasConflict && (
+                <Alert className="border-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    この時間は以下の予定と重複しています（前後30分を含む）:
+                    <ul className="mt-1 ml-4">
+                      {conflicts.conflictingEvents.map((event, idx) => (
+                        <li key={idx} className="list-disc">
+                          {event.companyName} - {event.title}
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {candidateSlots.length > 0 && (
                 <Card>
                   <CardContent className="p-3">
                     <div className="space-y-2">
                       <div className="text-sm font-medium">追加された候補日程</div>
-                      {candidateDates.map((date, index) => (
+                      {candidateSlots.map((slot, index) => (
                         <div key={index} className="flex items-center justify-between text-sm">
-                          <span>
-                            {date.toLocaleDateString('ja-JP', {
-                              month: 'long',
-                              day: 'numeric',
-                              weekday: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                          <span>{formatTimeSlotWithDate(slot)}</span>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeCandidateDate(index)}
+                            onClick={() => removeCandidateSlot(index)}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -262,7 +301,7 @@ export const AddEventForm = ({ companies, onAddEvent }: AddEventFormProps) => {
                 </Card>
               )}
               
-              {candidateDates.length === 0 && (
+              {candidateSlots.length === 0 && (
                 <div className="text-sm text-muted-foreground">
                   候補日程を最低1つ追加してください
                 </div>
@@ -297,7 +336,7 @@ export const AddEventForm = ({ companies, onAddEvent }: AddEventFormProps) => {
               </Button>
               <Button
                 type="submit"
-                disabled={candidateDates.length === 0}
+                disabled={candidateSlots.length === 0}
                 className="flex-1"
               >
                 追加

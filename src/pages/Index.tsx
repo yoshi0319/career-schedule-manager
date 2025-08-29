@@ -9,8 +9,7 @@ import { CompanyCard } from '@/components/CompanyCard';
 import { EventCard } from '@/components/EventCard';
 import { AddCompanyForm } from '@/components/AddCompanyForm';
 import { AddEventForm } from '@/components/AddEventForm';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
+import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
 
 const Index = () => {
   const { 
@@ -136,7 +135,8 @@ const Index = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">予定一覧</h2>
                 <AddEventForm 
-                  companies={companies} 
+                  companies={companies}
+                  events={events}
                   onAddEvent={addEvent} 
                 />
               </div>
@@ -187,18 +187,14 @@ const Index = () => {
                           </div>
                           <div className="text-right">
                             <div className="text-sm font-medium">
-                              {format(
-                                event.confirmedDate || event.candidateDates[0],
-                                'M月d日(E)',
-                                { locale: ja }
-                              )}
+                              {formatTimeSlotWithDate(
+                                event.confirmedSlot || event.candidateSlots[0]
+                              ).split(' ')[0]} {/* Date part */}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {format(
-                                event.confirmedDate || event.candidateDates[0],
-                                'HH:mm',
-                                { locale: ja }
-                              )}
+                              {formatTimeSlotWithDate(
+                                event.confirmedSlot || event.candidateSlots[0]
+                              ).split(' ')[1]} {/* Time part */}
                             </div>
                           </div>
                         </div>

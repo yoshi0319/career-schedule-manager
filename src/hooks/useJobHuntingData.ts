@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Company, Event, EventStatus, SelectionStage } from '@/types';
+import { Company, Event, EventStatus, SelectionStage, TimeSlot } from '@/types';
 
 // Mock data for initial development
 const mockCompanies: Company[] = [
@@ -31,10 +31,19 @@ const mockEvents: Event[] = [
     title: '一次面接',
     type: 'interview',
     status: 'candidate',
-    candidateDates: [
-      new Date('2024-02-01T10:00:00'),
-      new Date('2024-02-02T14:00:00'),
-      new Date('2024-02-05T10:30:00')
+    candidateSlots: [
+      {
+        startTime: new Date('2024-02-01T10:00:00'),
+        endTime: new Date('2024-02-01T12:00:00')
+      },
+      {
+        startTime: new Date('2024-02-02T14:00:00'),
+        endTime: new Date('2024-02-02T16:00:00')
+      },
+      {
+        startTime: new Date('2024-02-05T10:30:00'),
+        endTime: new Date('2024-02-05T12:30:00')
+      }
     ],
     location: '東京オフィス',
     isOnline: false,
@@ -49,8 +58,14 @@ const mockEvents: Event[] = [
     title: '会社説明会',
     type: 'info_session',
     status: 'confirmed',
-    candidateDates: [new Date('2024-02-03T13:00:00')],
-    confirmedDate: new Date('2024-02-03T13:00:00'),
+    candidateSlots: [{
+      startTime: new Date('2024-02-03T13:00:00'),
+      endTime: new Date('2024-02-03T15:00:00')
+    }],
+    confirmedSlot: {
+      startTime: new Date('2024-02-03T13:00:00'),
+      endTime: new Date('2024-02-03T15:00:00')
+    },
     isOnline: true,
     notes: 'Zoomリンクは後日送付',
     createdAt: new Date('2024-01-18'),
@@ -92,10 +107,10 @@ export const useJobHuntingData = () => {
     return newEvent;
   }, []);
 
-  const updateEventStatus = useCallback((eventId: string, status: EventStatus, confirmedDate?: Date) => {
+  const updateEventStatus = useCallback((eventId: string, status: EventStatus, confirmedSlot?: TimeSlot) => {
     setEvents(prev => prev.map(event => 
       event.id === eventId 
-        ? { ...event, status, confirmedDate, updatedAt: new Date() }
+        ? { ...event, status, confirmedSlot, updatedAt: new Date() }
         : event
     ));
   }, []);
@@ -104,13 +119,13 @@ export const useJobHuntingData = () => {
     const now = new Date();
     return events
       .filter(event => {
-        const eventDate = event.confirmedDate || event.candidateDates[0];
-        return eventDate && eventDate >= now;
+        const eventTime = event.confirmedSlot?.startTime || event.candidateSlots[0]?.startTime;
+        return eventTime && eventTime >= now;
       })
       .sort((a, b) => {
-        const dateA = a.confirmedDate || a.candidateDates[0];
-        const dateB = b.confirmedDate || b.candidateDates[0];
-        return dateA.getTime() - dateB.getTime();
+        const timeA = a.confirmedSlot?.startTime || a.candidateSlots[0]?.startTime;
+        const timeB = b.confirmedSlot?.startTime || b.candidateSlots[0]?.startTime;
+        return (timeA?.getTime() || 0) - (timeB?.getTime() || 0);
       });
   }, [events]);
 

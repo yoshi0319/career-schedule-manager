@@ -3,15 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, MapPin, Video } from 'lucide-react';
-import { Event, EventType, EventStatus } from '@/types';
+import { Event, EventType, EventStatus, TimeSlot } from '@/types';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
+import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
 import { EventConfirmationModal } from './EventConfirmationModal';
 
 interface EventCardProps {
   event: Event;
-  onUpdateStatus: (eventId: string, status: EventStatus, confirmedDate?: Date) => void;
+  onUpdateStatus: (eventId: string, status: EventStatus, confirmedSlot?: TimeSlot) => void;
 }
 
 const eventTypeLabels: Record<EventType, string> = {
@@ -37,10 +36,9 @@ const statusColors: Record<EventStatus, string> = {
 
 export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const displayDate = event.confirmedDate || event.candidateDates[0];
   
-  const handleConfirmDate = (selectedDate: Date) => {
-    onUpdateStatus(event.id, 'confirmed', selectedDate);
+  const handleConfirmSlot = (selectedSlot: TimeSlot) => {
+    onUpdateStatus(event.id, 'confirmed', selectedSlot);
   };
   
   return (
@@ -68,25 +66,25 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            {event.status === 'confirmed' && event.confirmedDate ? (
+            {event.status === 'confirmed' && event.confirmedSlot ? (
               <span className="font-medium text-confirmed">
-                {format(event.confirmedDate, 'M月d日(E) HH:mm', { locale: ja })} 確定
+                {formatTimeSlotWithDate(event.confirmedSlot)} 確定
               </span>
             ) : (
-              <span>候補日 {event.candidateDates.length}件</span>
+              <span>候補日 {event.candidateSlots.length}件</span>
             )}
           </div>
           
           {event.status === 'candidate' && (
             <div className="space-y-1">
-              {event.candidateDates.slice(0, 3).map((date, index) => (
+              {event.candidateSlots.slice(0, 3).map((slot, index) => (
                 <div key={index} className="text-sm text-muted-foreground ml-6">
-                  • {format(date, 'M月d日(E) HH:mm', { locale: ja })}
+                  • {formatTimeSlotWithDate(slot)}
                 </div>
               ))}
-              {event.candidateDates.length > 3 && (
+              {event.candidateSlots.length > 3 && (
                 <div className="text-sm text-muted-foreground ml-6">
-                  他 {event.candidateDates.length - 3}件
+                  他 {event.candidateSlots.length - 3}件
                 </div>
               )}
             </div>
@@ -133,7 +131,7 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
         event={event}
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
-        onConfirm={handleConfirmDate}
+        onConfirm={handleConfirmSlot}
       />
     </Card>
   );
