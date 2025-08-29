@@ -6,6 +6,20 @@ import { Calendar, Clock, MapPin, Video } from 'lucide-react';
 import { Event, EventType, EventStatus, TimeSlot } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
+
+// 開始時間のみを表示する関数
+const formatStartTimeWithDate = (slot: TimeSlot): string => {
+  const date = slot.startTime.toLocaleDateString('ja-JP', {
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short'
+  });
+  const time = slot.startTime.toLocaleTimeString('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  return `${date} ${time}〜`;
+};
 import { EventConfirmationModal } from './EventConfirmationModal';
 
 interface EventCardProps {
@@ -36,9 +50,15 @@ const statusColors: Record<EventStatus, string> = {
 
 export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
   
   const handleConfirmSlot = (selectedSlot: TimeSlot) => {
     onUpdateStatus(event.id, 'confirmed', selectedSlot);
+  };
+
+  const handleSlotClick = (index: number) => {
+    setSelectedSlotIndex(index);
+    setShowConfirmModal(true);
   };
   
   return (
@@ -68,7 +88,7 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
             {event.status === 'confirmed' && event.confirmedSlot ? (
               <span className="font-medium text-confirmed">
-                {formatTimeSlotWithDate(event.confirmedSlot)} 確定
+                {formatStartTimeWithDate(event.confirmedSlot)} 確定
               </span>
             ) : (
               <span>候補日 {event.candidateSlots.length}件</span>
@@ -79,7 +99,12 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
             <div className="space-y-1">
               {event.candidateSlots.slice(0, 3).map((slot, index) => (
                 <div key={index} className="text-sm text-muted-foreground ml-6">
-                  • {formatTimeSlotWithDate(slot)}
+                  <button
+                    onClick={() => handleSlotClick(index)}
+                    className="text-left hover:text-foreground hover:underline transition-colors cursor-pointer"
+                  >
+                    • {formatTimeSlotWithDate(slot)}
+                  </button>
                 </div>
               ))}
               {event.candidateSlots.length > 3 && (
@@ -104,7 +129,7 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
                 size="sm"
                 onClick={() => setShowConfirmModal(true)}
               >
-                確定
+                確認
               </Button>
               <Button
                 variant="outline"
@@ -132,6 +157,7 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleConfirmSlot}
+        initialSelectedSlotIndex={selectedSlotIndex}
       />
     </Card>
   );
