@@ -96,6 +96,11 @@ export const useJobHuntingData = () => {
     ));
   }, []);
 
+  const deleteCompany = useCallback((companyId: string) => {
+    setCompanies(prev => prev.filter(company => company.id !== companyId));
+    setEvents(prev => prev.filter(event => event.companyId !== companyId));
+  }, []);
+
   const addEvent = useCallback((event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newEvent: Event = {
       ...event,
@@ -113,6 +118,18 @@ export const useJobHuntingData = () => {
         ? { ...event, status, confirmedSlot, updatedAt: new Date() }
         : event
     ));
+  }, []);
+
+  const updateEvent = useCallback((eventId: string, eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
+    setEvents(prev => prev.map(event => 
+      event.id === eventId 
+        ? { ...eventData, id: eventId, createdAt: event.createdAt, updatedAt: new Date() }
+        : event
+    ));
+  }, []);
+
+  const deleteEvent = useCallback((eventId: string) => {
+    setEvents(prev => prev.filter(event => event.id !== eventId));
   }, []);
 
   const getUpcomingEvents = useCallback(() => {
@@ -134,7 +151,10 @@ export const useJobHuntingData = () => {
     events,
     addCompany,
     updateCompanyStage,
+    deleteCompany,
     addEvent,
+    updateEvent,
+    deleteEvent,
     updateEventStatus,
     getUpcomingEvents,
   };

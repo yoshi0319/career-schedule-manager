@@ -41,6 +41,29 @@ export function checkTimeSlotConflict(
   };
 }
 
+// 確定済みイベントのみとの重複をチェックする関数
+export function checkConfirmedEventConflict(
+  newSlot: TimeSlot,
+  existingEvents: Event[]
+): { hasConflict: boolean; conflictingEvents: Event[] } {
+  const conflictingEvents: Event[] = [];
+  
+  for (const event of existingEvents) {
+    // 確定済みのスロットのみをチェック
+    if (event.confirmedSlot) {
+      const bufferedSlot = addBufferToTimeSlot(event.confirmedSlot);
+      if (timeSlotsOverlap(newSlot, bufferedSlot)) {
+        conflictingEvents.push(event);
+      }
+    }
+  }
+  
+  return {
+    hasConflict: conflictingEvents.length > 0,
+    conflictingEvents
+  };
+}
+
 function timeSlotsOverlap(slot1: TimeSlot, slot2: TimeSlot): boolean {
   return slot1.startTime < slot2.endTime && slot1.endTime > slot2.startTime;
 }
