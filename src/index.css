@@ -40,9 +40,6 @@ All colors MUST be HSL.
     --confirmed: 142 76% 36%;
     --confirmed-foreground: 0 0% 100%;
     
-    --pending: 25 95% 53%;
-    --pending-foreground: 0 0% 100%;
-    
     --rejected: 0 84% 60%;
     --rejected-foreground: 0 0% 100%;
 
