@@ -9,28 +9,28 @@ import (
 type Company struct {
 	ID           string    `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	UserID       string    `json:"user_id" gorm:"type:uuid;not null;index"`
-	Name         string    `json:"name" gorm:"not null"`
-	Industry     string    `json:"industry"`
-	Position     string    `json:"position"`
-	CurrentStage string    `json:"current_stage" gorm:"not null"`
-	Notes        string    `json:"notes"`
+	Name         string    `json:"name" gorm:"not null" validate:"required,min=1,max=100"`
+	Industry     string    `json:"industry" validate:"max=50"`
+	Position     string    `json:"position" validate:"max=100"`
+	CurrentStage string    `json:"current_stage" gorm:"not null" validate:"required,oneof=document_review first_interview second_interview final_interview offer rejected"`
+	Notes        string    `json:"notes" validate:"max=1000"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type Event struct {
 	ID             string    `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	CompanyID      string    `json:"company_id" gorm:"type:uuid;not null;index"`
+	CompanyID      string    `json:"company_id" gorm:"type:uuid;not null;index" validate:"required,uuid"`
 	UserID         string    `json:"user_id" gorm:"type:uuid;not null;index"`
-	CompanyName    string    `json:"company_name" gorm:"not null"`
-	Title          string    `json:"title" gorm:"not null"`
-	Type           string    `json:"type" gorm:"not null"`
-	Status         string    `json:"status" gorm:"default:candidate"`
+	CompanyName    string    `json:"company_name" gorm:"not null" validate:"required,min=1,max=100"`
+	Title          string    `json:"title" gorm:"not null" validate:"required,min=1,max=200"`
+	Type           string    `json:"type" gorm:"not null" validate:"required,oneof=interview info_session group_discussion final_interview"`
+	Status         string    `json:"status" gorm:"default:candidate" validate:"oneof=candidate confirmed rejected"`
 	CandidateSlots string    `json:"candidate_slots" gorm:"type:jsonb"`
 	ConfirmedSlot  string    `json:"confirmed_slot" gorm:"type:jsonb"`
-	Location       string    `json:"location"`
+	Location       string    `json:"location" validate:"max=200"`
 	IsOnline       bool      `json:"is_online" gorm:"default:false"`
-	Notes          string    `json:"notes"`
+	Notes          string    `json:"notes" validate:"max=1000"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }

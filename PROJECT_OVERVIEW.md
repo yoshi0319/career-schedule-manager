@@ -67,9 +67,9 @@
 - **視覚的フィードバック**: 競合エラー表示、成功アニメーション、状態バッジ
 - **アクセシビリティ**: キーボード操作対応、明確な視覚的階層
 
-## 🏗️ 技術アーキテクチャ
+## 🏗️ フルスタック技術アーキテクチャ
 
-### フロントエンド
+### フロントエンド（React SPA）
 - **React 18** + **TypeScript**: コンポーネントベースアーキテクチャ
 - **shadcn/ui** + **Radix UI**: アクセシブルなUIコンポーネント
 - **Tailwind CSS**: ユーティリティファーストCSS
@@ -77,14 +77,27 @@
 - **date-fns**: 日時操作・フォーマット（日本語対応）
 
 ### 状態管理・データフロー
-- **React Hooks**: useState, useCallback, useEffect
-- **カスタムフック**: useJobHuntingData（中央集権的データ管理）
+- **React Query**: サーバー状態管理・キャッシュ・同期
+- **React Context**: 認証状態のグローバル管理
 - **React Hook Form** + **Zod**: 型安全なフォーム管理・バリデーション
 - **React Router DOM**: SPA ルーティング
 
-### 外部連携
-- **Google Calendar API**: 確定予定の外部カレンダー登録
-- **Browser API**: localStorage（将来的なデータ永続化）
+### バックエンド（Go API）
+- **Go 1.21+**: 高性能なWebサーバー
+- **Gin Framework**: 軽量で高速なHTTPルーター
+- **GORM**: PostgreSQL対応のORMライブラリ
+- **JWT認証**: github.com/golang-jwt/jwt/v5によるトークン検証
+- **データバリデーション**: github.com/go-playground/validator/v10
+
+### データベース・認証
+- **Supabase PostgreSQL**: クラウドデータベース + Row Level Security (RLS)
+- **Supabase Auth**: メール/パスワード認証 + Google OAuth
+- **JWT認証**: セキュアなAPIアクセス制御
+
+### デプロイメント・インフラ
+- **Vercel**: フロントエンド静的ホスティング（CDN + 自動デプロイ）
+- **Railway**: Goバックエンドのコンテナホスティング
+- **Supabase**: マネージドPostgreSQL + 認証サービス
 
 ### 主要な型定義
 ```typescript
@@ -258,12 +271,37 @@ checkConfirmedEventConflict(selectedSlot, allEvents)
 
 ---
 
-## 📋 最新の機能概要
+## 📋 最新の機能概要（2025年8月更新）
 
-このドキュメントは2025年8月時点の最新実装を反映しています：
+### ✅ **フルスタック実装完了**
 
-✅ **完全実装済み**: Googleカレンダー連携、月表示カレンダー、企業詳細管理、高度な競合検出
-✅ **UI/UX**: 5分刻み時間選択、レスポンシブデザイン、アクセシブルなコンポーネント
-✅ **技術基盤**: React 18 + TypeScript + shadcn/ui + Tailwindによるモダンな開発環境
+**🎯 フロントエンド機能**
+- 企業管理：追加・編集・削除・選考ステージ管理
+- 予定管理：候補日・確定日・ステータス管理・競合検出
+- カレンダー表示：月表示・Googleカレンダー連携
+- 統計ダッシュボード：企業数・予定数の可視化
+- レスポンシブUI：shadcn/ui + Tailwind CSS
+
+**🔒 認証・セキュリティ**
+- Supabase Authentication（メール/パスワード + Google OAuth）
+- JWT認証によるAPIアクセス制御
+- Row Level Security (RLS)によるデータ分離
+
+**⚡ バックエンドAPI**
+- Go + Gin による高性能RESTful API
+- PostgreSQL（Supabase）との連携
+- データバリデーション・エラーハンドリング
+
+**🚀 デプロイメント準備**
+- Vercel設定（フロントエンド）
+- Railway設定（バックエンド）
+- 環境変数管理・CORS設定
+
+### 🎨 **技術的特徴**
+- **モノレポ構成**: frontend/ + backend/ による整理された構造
+- **型安全性**: TypeScript + Go による厳密な型システム
+- **モダンUI**: React 18 + shadcn/ui による洗練されたデザイン
+- **高性能**: React Query + Goによる高速データ処理
+- **無料枠**: 全サービス無料プランでの構成
 
 このドキュメントは、プロジェクトの全体像を把握し、新機能の実装や既存機能の修正に取り掛かる際の指針となります。常に最新の状態に更新し、開発チーム全体で共有してください。
