@@ -1,40 +1,50 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Supabaseクライアントの遅延初期化
+let supabase: ReturnType<typeof createClient> | null = null
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+const getSupabaseClient = () => {
+  if (!supabase) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Missing Supabase environment variables')
+    }
+
+    supabase = createClient(supabaseUrl, supabaseAnonKey)
+  }
+  return supabase
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export { getSupabaseClient as supabase }
 
 // 認証状態の取得
-export const getSession = () => supabase.auth.getSession()
+export const getSession = () => getSupabaseClient().auth.getSession()
 
 // 認証状態の監視
 export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
-  return supabase.auth.onAuthStateChange(callback)
+  return getSupabaseClient().auth.onAuthStateChange(callback)
 }
 
 // ログイン
 export const signIn = (email: string, password: string) => {
-  return supabase.auth.signInWithPassword({ email, password })
+  return getSupabaseClient().auth.signInWithPassword({ email, password })
 }
 
 // サインアップ
 export const signUp = (email: string, password: string) => {
-  return supabase.auth.signUp({ email, password })
+  return getSupabaseClient().auth.signUp({ email, password })
 }
 
 // ログアウト
 export const signOut = () => {
-  return supabase.auth.signOut()
+  return getSupabaseClient().auth.signOut()
 }
 
 // Googleでサインイン
 export const signInWithGoogle = () => {
-  return supabase.auth.signInWithOAuth({
+  return getSupabaseClient().auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: `${window.location.origin}`
@@ -44,6 +54,6 @@ export const signInWithGoogle = () => {
 
 // JWTトークンの取得
 export const getAccessToken = async () => {
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { session } } = await getSupabaseClient().auth.getSession()
   return session?.access_token || null
 }
