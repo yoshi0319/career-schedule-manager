@@ -1,0 +1,256 @@
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Building2, Calendar, MapPin, Clock, Edit3, Save, X, AlertTriangle } from 'lucide-react';
+import { Company, Event, SelectionStage } from '@/types';
+import { cn } from '@/lib/utils';
+import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+interface CompanyDetailModalProps {
+  company: Company;
+  events: Event[];
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdateStage: (companyId: string, stage: SelectionStage) => void;
+  onDeleteCompany: (companyId: string) => void;
+}
+
+const stageLabels: Record<SelectionStage, string> = {
+  document_review: '書類選考',
+  first_interview: '一次面接',
+  second_interview: '二次面接',
+  final_interview: '最終面接',
+  offer: '内定',
+  rejected: '不合格'
+};
+
+const stageColors: Record<SelectionStage, string> = {
+  document_review: 'bg-pending text-pending-foreground',
+  first_interview: 'bg-candidate text-candidate-foreground',
+  second_interview: 'bg-candidate text-candidate-foreground',
+  final_interview: 'bg-candidate text-candidate-foreground',
+  offer: 'bg-confirmed text-confirmed-foreground',
+  rejected: 'bg-rejected text-rejected-foreground'
+};
+
+export const CompanyDetailModal = ({ 
+  company, 
+  events, 
+  isOpen, 
+  onClose, 
+  onUpdateStage,
+  onDeleteCompany 
+}: CompanyDetailModalProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentStage, setCurrentStage] = useState<SelectionStage>(company.currentStage);
+  const [notes, setNotes] = useState(company.notes || '');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const companyEvents = events.filter(event => event.companyId === company.id);
+  const confirmedEvents = companyEvents.filter(event => event.status === 'confirmed');
+  const candidateEvents = companyEvents.filter(event => event.status === 'candidate');
+
+  const handleSave = () => {
+    if (currentStage !== company.currentStage) {
+      onUpdateStage(company.id, currentStage);
+    }
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    onDeleteCompany(company.id);
+    setShowDeleteConfirm(false);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              {company.name}
+            </DialogTitle>
+            <div className="flex items-center gap-2 pr-5">
+              {isEditing ? (
+                <>
+                  <Button size="sm" onClick={handleSave}>
+                    <Save className="h-4 w-4 mr-1" />
+                    保存
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+                    <X className="h-4 w-4 mr-1" />
+                    キャンセル
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                  <Edit3 className="h-4 w-4 mr-1" />
+                  編集
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* 基本情報 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">業界</Label>
+              <div className="text-base mt-1">{company.industry}</div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">応募職種</Label>
+              <div className="text-base mt-1">{company.position}</div>
+            </div>
+          </div>
+
+          {/* 選考ステージ */}
+          <div>
+            <Label className="text-sm font-medium text-muted-foreground">選考ステージ</Label>
+            {isEditing ? (
+              <Select value={currentStage} onValueChange={(value: SelectionStage) => setCurrentStage(value)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(stageLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="mt-1">
+                <Badge className={cn(stageColors[currentStage])}>
+                  {stageLabels[currentStage]}
+                </Badge>
+              </div>
+            )}
+          </div>
+
+          {/* 日程情報 */}
+          <div>
+            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              日程情報
+            </Label>
+            <div className="mt-2 space-y-3">
+              {confirmedEvents.length > 0 ? (
+                // 確定日程がある場合
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-confirmed">確定済み日程</div>
+                  {confirmedEvents.map((event, index) => (
+                    <div key={index} className="flex items-center gap-2 p-3 bg-confirmed/10 border border-confirmed/20 rounded-lg">
+                      <Clock className="h-4 w-4 text-confirmed" />
+                      <div className="flex-1">
+                        <div className="font-medium">{event.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {event.confirmedSlot && formatTimeSlotWithDate(event.confirmedSlot)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : candidateEvents.length > 0 ? (
+                // 候補日程のみの場合
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-candidate">候補日程</div>
+                  {candidateEvents.map((event, index) => (
+                    <div key={index} className="flex items-center gap-2 p-3 bg-candidate/10 border border-candidate/20 rounded-lg">
+                      <Clock className="h-4 w-4 text-candidate" />
+                      <div className="flex-1">
+                        <div className="font-medium">{event.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {event.candidateSlots.length}件の候補日
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
+                  予定はありません
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* メモ */}
+          <div>
+            <Label className="text-sm font-medium text-muted-foreground">メモ</Label>
+            {isEditing ? (
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="企業に関するメモを入力してください"
+                className="mt-1"
+                rows={3}
+              />
+            ) : (
+              <div className="mt-1 p-3 bg-muted/30 rounded-lg min-h-[60px]">
+                {notes || 'メモはありません'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 削除ボタン */}
+        <div className="flex justify-end pt-4 border-t">
+          <Button variant="destructive" size="sm" onClick={handleDelete}>
+            企業を削除
+          </Button>
+        </div>
+      </DialogContent>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              企業の削除
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              この企業を削除しますか？関連する予定も全て削除されます。
+              <br />
+              <span className="font-medium text-destructive">
+                この操作は取り消すことができません。
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Dialog>
+  );
+};
