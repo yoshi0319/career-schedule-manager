@@ -53,9 +53,9 @@ const statusLabels: Record<EventStatus, string> = {
 };
 
 const statusColors: Record<EventStatus, string> = {
-  candidate: 'bg-candidate text-candidate-foreground',
-  confirmed: 'bg-confirmed text-confirmed-foreground',
-  rejected: 'bg-rejected text-rejected-foreground'
+  candidate: 'bg-candidate text-candidate-foreground hover:bg-candidate/80',
+  confirmed: 'bg-confirmed text-confirmed-foreground hover:bg-confirmed/80',
+  rejected: 'bg-rejected text-rejected-foreground hover:bg-rejected/80'
 };
 
 export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditEvent, onDeleteEvent }: EventCardProps) => {
