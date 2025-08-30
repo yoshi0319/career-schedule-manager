@@ -14,22 +14,59 @@ class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`
-    const headers = await this.getHeaders()
     
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...headers,
-        ...options.headers,
-      },
-    })
+    try {
+      const headers = await this.getHeaders()
+      
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...headers,
+          ...options.headers,
+        },
+      })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`API Error: ${response.status} - ${errorText}`)
+      if (!response.ok) {
+        let errorMessage = `サーバーエラーが発生しました (${response.status})`
+        
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If JSON parsing fails, use status text
+          errorMessage = response.statusText || errorMessage
+        }
+
+        // Handle specific error codes
+        switch (response.status) {
+          case 401:
+            throw new Error('認証が必要です。再度ログインしてください。')
+          case 403:
+            throw new Error('この操作を実行する権限がありません。')
+          case 404:
+            throw new Error('指定されたリソースが見つかりません。')
+          case 500:
+            throw new Error('サーバー内部エラーが発生しました。しばらく後に再試行してください。')
+          default:
+            throw new Error(errorMessage)
+        }
+      }
+
+      return response.json()
+    } catch (error) {
+      // Handle network errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('ネットワークエラーが発生しました。インターネット接続を確認してください。')
+      }
+      
+      // Re-throw API errors as-is
+      if (error instanceof Error) {
+        throw error
+      }
+      
+      // Fallback for unknown errors
+      throw new Error('予期しないエラーが発生しました。')
     }
-
-    return response.json()
   }
 
   // Company API

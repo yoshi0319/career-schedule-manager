@@ -26,14 +26,19 @@ career-schedule-manager/
 **フロントエンド:**
 - React 18 + TypeScript + Vite
 - shadcn/ui + Tailwind CSS
-- React Query + Zustand
+- React Query (サーバー状態管理)
+- Supabase Auth (認証)
 - Vercel (デプロイ)
 
 **バックエンド:**
 - Go 1.21+ + Gin Framework
-- GORM + PostgreSQL
-- Supabase (認証・DB)
+- GORM + PostgreSQL (Supabase)
+- JWT認証 + データバリデーション
 - Railway (デプロイ)
+
+**データベース・認証:**
+- Supabase PostgreSQL + Row Level Security
+- メール/パスワード + Google OAuth認証
 
 ## 🚀 クイックスタート
 
@@ -71,27 +76,46 @@ go run cmd/server/main.go
 ### 環境変数設定
 
 **Frontend (.env.local):**
-```
-VITE_SUPABASE_URL=your-supabase-url
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
 **Backend (.env):**
-```
-DATABASE_URL=your-supabase-postgresql-url
+```env
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.xxx.supabase.co:5432/postgres
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_JWT_SECRET=your-jwt-secret
 PORT=8080
+GIN_MODE=debug
 FRONTEND_URL=http://localhost:5173
+PRODUCTION_FRONTEND_URL=https://your-app.vercel.app
 ```
 
 ## 📱 使用方法
 
-1. **アカウント作成**: メール認証でユーザー登録
-2. **企業追加**: 業界・職種・選考ステージを管理
-3. **予定作成**: 面接・説明会の候補日程を複数設定
-4. **日程確定**: 候補日から詳細時間を選択して確定
-5. **カレンダー連携**: Googleカレンダーに一括登録
+### 🔐 認証・ログイン
+1. **サインアップ**: メール/パスワードまたはGoogleアカウントで登録
+2. **ログイン**: 認証情報でアプリにアクセス
+3. **マルチデバイス**: PC・スマホで同じアカウントでデータ同期
+
+### 🏢 企業管理
+1. **企業追加**: 業界・応募職種・選考ステージを登録
+2. **ステージ管理**: 書類選考→一次面接→二次面接→最終面接→内定/不合格
+3. **企業詳細**: メモ・関連予定の一元表示
+
+### 📅 予定管理
+1. **候補日設定**: 面接・説明会の複数候補日を5分刻みで設定
+2. **競合チェック**: 前後30分バッファでの自動競合検出
+3. **日程確定**: 候補日から詳細時間を選択して確定
+4. **ステータス管理**: 候補日・確定・キャンセルの状態管理
+
+### 🗓️ カレンダー連携
+1. **月表示カレンダー**: 候補日・確定日の視覚的表示
+2. **Googleカレンダー**: 個別または一括でカレンダー登録
+3. **統計ダッシュボード**: 企業数・予定数・今後の予定を表示
 
 ## 🔗 関連リンク
 
