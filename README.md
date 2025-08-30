@@ -1,73 +1,154 @@
-# Welcome to your Lovable project
+# 🎯 就活スケジュール管理アプリ
 
-## Project info
+就活生向けの包括的な日程管理アプリケーション。複数企業への応募における面接・説明会の日程調整を効率化し、候補日管理から確定後のカレンダー連携まで、就活における時間管理を一元化します。
 
-**URL**: https://lovable.dev/projects/f7955324-3943-4895-b924-f0b43160e271
+## 🚀 特徴
 
-## How can I edit this code?
+- **マルチデバイス対応**: PC・スマホでデータ同期
+- **高度な競合検出**: 前後30分バッファ付きスケジュール管理
+- **Googleカレンダー連携**: 1クリックでカレンダー登録
+- **直感的UI**: shadcn/uiによるモダンなデザイン
+- **リアルタイム**: 複数デバイス間でのデータ同期
 
-There are several ways of editing your application.
+## 🏗️ アーキテクチャ
 
-**Use Lovable**
+```
+career-schedule-manager/
+├── frontend/          # React + TypeScript + Vite
+├── backend/           # Go + Gin + GORM
+├── docs/              # API仕様書・ドキュメント
+├── README.md          # プロジェクト概要
+└── PROJECT_OVERVIEW.md # 詳細仕様書
+```
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f7955324-3943-4895-b924-f0b43160e271) and start prompting.
+### 技術スタック
 
-Changes made via Lovable will be committed automatically to this repo.
+**フロントエンド:**
+- React 18 + TypeScript + Vite
+- shadcn/ui + Tailwind CSS
+- React Query + Zustand
+- Vercel (デプロイ)
 
-**Use your preferred IDE**
+**バックエンド:**
+- Go 1.21+ + Gin Framework
+- GORM + PostgreSQL
+- Supabase (認証・DB)
+- Railway (デプロイ)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 クイックスタート
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 前提条件
+- Node.js 18+
+- Go 1.21+
+- Supabaseアカウント
 
-Follow these steps:
+### セットアップ
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. **リポジトリクローン**
+```bash
+git clone <repository-url>
+cd career-schedule-manager
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+2. **フロントエンド起動**
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+# .env.localを編集
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+3. **バックエンド起動**
+```bash
+cd backend
+go mod tidy
+cp env.example .env
+# .envを編集
+go run cmd/server/main.go
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 環境変数設定
 
-**Use GitHub Codespaces**
+**Frontend (.env.local):**
+```
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_API_BASE_URL=http://localhost:8080
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+**Backend (.env):**
+```
+DATABASE_URL=your-supabase-postgresql-url
+SUPABASE_JWT_SECRET=your-jwt-secret
+PORT=8080
+FRONTEND_URL=http://localhost:5173
+```
 
-## What technologies are used for this project?
+## 📱 使用方法
 
-This project is built with:
+1. **アカウント作成**: メール認証でユーザー登録
+2. **企業追加**: 業界・職種・選考ステージを管理
+3. **予定作成**: 面接・説明会の候補日程を複数設定
+4. **日程確定**: 候補日から詳細時間を選択して確定
+5. **カレンダー連携**: Googleカレンダーに一括登録
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🔗 関連リンク
 
-## How can I deploy this project?
+- [詳細仕様書](./PROJECT_OVERVIEW.md)
+- [フロントエンド README](./frontend/README.md)
+- [バックエンド README](./backend/README.md)
+- [API仕様書](./docs/api/)
 
-Simply open [Lovable](https://lovable.dev/projects/f7955324-3943-4895-b924-f0b43160e271) and click on Share -> Publish.
+## 📄 ライセンス
 
-## Can I connect a custom domain to my Lovable project?
+MIT License
 
-Yes, you can!
+## 🤝 コントリビューション
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Forkする
+2. Feature branchを作成
+3. 変更をCommit
+4. Branchにush
+5. Pull Requestを作成
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 📞 サポート
+
+- Issues: GitHub Issues
+- ドキュメント: [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md)
+
+---
+
+## 🔧 開発者向け情報
+
+### ディレクトリ構造変更履歴
+
+このプロジェクトは、フロントエンド単体から始まり、フルスタック構成に拡張されました：
+
+**変更前（フロントエンドのみ）:**
+```
+career-schedule-manager/
+├── src/
+├── public/
+├── package.json
+└── その他設定ファイル
+```
+
+**変更後（フルスタック）:**
+```
+career-schedule-manager/
+├── frontend/     # フロントエンド（既存ファイルを移動）
+├── backend/      # バックエンド（新規作成）
+├── docs/         # ドキュメント
+└── README.md     # プロジェクト全体概要
+```
+
+### 各ディレクトリの起動方法
+
+```bash
+# フロントエンド（開発サーバー: http://localhost:5173）
+cd frontend && npm run dev
+
+# バックエンド（APIサーバー: http://localhost:8080）
+cd backend && go run cmd/server/main.go
+```

@@ -3,8 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Building2, Clock } from 'lucide-react';
-import { useJobHuntingData } from '@/hooks/useJobHuntingData';
+import { Calendar, Building2, Clock, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthForm } from '@/components/AuthForm';
+import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
+import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useConfirmEvent } from '@/hooks/useEvents';
 import { CompanyCard } from '@/components/CompanyCard';
 import { EventCard } from '@/components/EventCard';
 import { AddCompanyForm } from '@/components/AddCompanyForm';
@@ -12,25 +15,71 @@ import { AddEventForm } from '@/components/AddEventForm';
 import { CompanyDetailModal } from '@/components/CompanyDetailModal';
 import { JobCalendar } from '@/components/JobCalendar';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
-import { Company, SelectionStage, Event } from '@/types';
+import { Company, SelectionStage, Event, EventStatus } from '@/types';
 
 const Index = () => {
-  const { 
-    companies, 
-    events, 
-    addCompany, 
-    addEvent,
-    updateEvent,
-    deleteEvent,
-    updateEventStatus, 
-    updateCompanyStage,
-    deleteCompany,
-    getUpcomingEvents 
-  } = useJobHuntingData();
+  const { user, loading, signOut } = useAuth();
+
+  // API データ取得（フック順序を維持）
+  const { data: companies = [], isLoading: companiesLoading } = useCompanies();
+  const { data: events = [], isLoading: eventsLoading } = useEvents();
+  
+  // API ミューテーション
+  const createCompanyMutation = useCreateCompany();
+  const updateCompanyMutation = useUpdateCompany();
+  const deleteCompanyMutation = useDeleteCompany();
+  const createEventMutation = useCreateEvent();
+  const updateEventMutation = useUpdateEvent();
+  const deleteEventMutation = useDeleteEvent();
+  const confirmEventMutation = useConfirmEvent();
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCompanyDetail, setShowCompanyDetail] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+
+  // 認証チェック（フック後に実行）
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+          <p className="mt-4 text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthForm />;
+  }
+
+  // データローディング状態
+  if (companiesLoading || eventsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+          <p className="mt-4 text-gray-600">データを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 今後の予定を取得（ローカル計算）
+  const getUpcomingEvents = () => {
+    const now = new Date();
+    return events
+      .filter(event => {
+        const eventTime = event.confirmedSlot?.startTime || event.candidateSlots[0]?.startTime;
+        return eventTime && new Date(eventTime) >= now;
+      })
+      .sort((a, b) => {
+        const timeA = new Date(a.confirmedSlot?.startTime || a.candidateSlots[0]?.startTime || '');
+        const timeB = new Date(b.confirmedSlot?.startTime || b.candidateSlots[0]?.startTime || '');
+        return timeA.getTime() - timeB.getTime();
+      })
+      .slice(0, 5);
+  };
 
   const upcomingEvents = getUpcomingEvents();
   const confirmedEventsCount = events.filter(e => e.status === 'confirmed').length;
@@ -42,11 +91,11 @@ const Index = () => {
   };
 
   const handleUpdateCompanyStage = (companyId: string, stage: SelectionStage) => {
-    updateCompanyStage(companyId, stage);
+    updateCompanyMutation.mutate({ id: companyId, company: { currentStage: stage } });
   };
 
   const handleDeleteCompany = (companyId: string) => {
-    deleteCompany(companyId);
+    deleteCompanyMutation.mutate(companyId);
   };
 
   const handleEditEvent = (event: Event) => {
@@ -59,7 +108,28 @@ const Index = () => {
 
   const handleDeleteEvent = (eventId: string) => {
     if (confirm('この予定を削除しますか？')) {
-      deleteEvent(eventId);
+      deleteEventMutation.mutate(eventId);
+    }
+  };
+
+  const handleAddCompany = (companyData: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>) => {
+    createCompanyMutation.mutate(companyData);
+  };
+
+  const handleAddEvent = (eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
+    createEventMutation.mutate(eventData);
+  };
+
+  const handleUpdateEvent = (eventId: string, eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
+    updateEventMutation.mutate({ id: eventId, event: eventData });
+    setEditingEvent(null);
+  };
+
+  const handleUpdateEventStatus = (eventId: string, status: EventStatus, confirmedSlot?: any) => {
+    if (confirmedSlot) {
+      confirmEventMutation.mutate({ id: eventId, confirmedSlot, status });
+    } else {
+      updateEventMutation.mutate({ id: eventId, event: { status } });
     }
   };
 
@@ -72,8 +142,21 @@ const Index = () => {
             <div>
               <h1 className="text-3xl font-bold text-foreground">就活ダッシュボード</h1>
               <p className="text-muted-foreground mt-1">あなたの就活を効率的に管理</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                ようこそ、{user.email} さん
+              </p>
             </div>
-            <AddCompanyForm onAddCompany={addCompany} />
+            <div className="flex items-center gap-4">
+              <AddCompanyForm onAddCompany={handleAddCompany} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={signOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                ログアウト
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -134,7 +217,7 @@ const Index = () => {
                     <p className="text-muted-foreground text-center mb-4">
                       最初の企業を追加して就活管理を始めましょう
                     </p>
-                    <AddCompanyForm onAddCompany={addCompany} />
+                    <AddCompanyForm onAddCompany={handleAddCompany} />
                   </CardContent>
                 </Card>
               ) : (
@@ -162,7 +245,7 @@ const Index = () => {
                   key="add-event-form"
                   companies={companies}
                   events={events}
-                  onAddEvent={addEvent} 
+                  onAddEvent={handleAddEvent} 
                 />
                 {editingEvent && (
                   <AddEventForm 
@@ -170,8 +253,8 @@ const Index = () => {
                     companies={companies}
                     events={events}
                     editEvent={editingEvent}
-                    onAddEvent={addEvent}
-                    onUpdateEvent={updateEvent}
+                    onAddEvent={(eventData) => handleUpdateEvent(editingEvent.id, eventData)}
+                    onUpdateEvent={handleUpdateEvent}
                     onClose={handleCloseEditEvent}
                   />
                 )}
@@ -194,7 +277,7 @@ const Index = () => {
                       event={event}
                       allEvents={events}
                       companies={companies}
-                      onUpdateStatus={updateEventStatus}
+                      onUpdateStatus={handleUpdateEventStatus}
                       onEditEvent={handleEditEvent}
                       onDeleteEvent={handleDeleteEvent}
                     />
