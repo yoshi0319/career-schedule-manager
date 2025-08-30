@@ -10,6 +10,7 @@ import { EventCard } from '@/components/EventCard';
 import { AddCompanyForm } from '@/components/AddCompanyForm';
 import { AddEventForm } from '@/components/AddEventForm';
 import { CompanyDetailModal } from '@/components/CompanyDetailModal';
+import { JobCalendar } from '@/components/JobCalendar';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
 import { Company, SelectionStage, Event } from '@/types';
 
@@ -192,6 +193,7 @@ const Index = () => {
                       key={event.id}
                       event={event}
                       allEvents={events}
+                      companies={companies}
                       onUpdateStatus={updateEventStatus}
                       onEditEvent={handleEditEvent}
                       onDeleteEvent={handleDeleteEvent}
@@ -203,45 +205,7 @@ const Index = () => {
           </TabsContent>
           
           <TabsContent value="calendar" className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold mb-4">今後の予定</h2>
-              <Card>
-                <CardContent className="p-6">
-                  {upcomingEvents.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">今後の予定はありません</h3>
-                      <p className="text-muted-foreground">
-                        新しい面接や説明会の予定を追加してみましょう
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {upcomingEvents.slice(0, 10).map((event) => (
-                        <div key={event.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                          <div>
-                            <h4 className="font-medium">{event.title}</h4>
-                            <p className="text-sm text-muted-foreground">{event.companyName}</p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-medium">
-                              {formatTimeSlotWithDate(
-                                event.confirmedSlot || event.candidateSlots[0]
-                              ).split(' ')[0]} {/* Date part */}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {formatTimeSlotWithDate(
-                                event.confirmedSlot || event.candidateSlots[0]
-                              ).split(' ')[1]} {/* Time part */}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            <JobCalendar events={events} companies={companies} />
           </TabsContent>
         </Tabs>
       </main>

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, MapPin, Video, Edit, Trash2, MoreVertical } from 'lucide-react';
-import { Event, EventType, EventStatus, TimeSlot } from '@/types';
+import { Calendar, Clock, MapPin, Video, Edit, Trash2, MoreVertical, ExternalLink } from 'lucide-react';
+import { Event, EventType, EventStatus, TimeSlot, Company } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
+import { exportToGoogleCalendar, debugDateConversion } from '@/lib/googleCalendar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,7 @@ import { EventConfirmationModal } from './EventConfirmationModal';
 interface EventCardProps {
   event: Event;
   allEvents: Event[];
+  companies: Company[];
   onUpdateStatus: (eventId: string, status: EventStatus, confirmedSlot?: TimeSlot) => void;
   onEditEvent: (event: Event) => void;
   onDeleteEvent: (eventId: string) => void;
@@ -56,7 +58,7 @@ const statusColors: Record<EventStatus, string> = {
   rejected: 'bg-rejected text-rejected-foreground'
 };
 
-export const EventCard = ({ event, allEvents, onUpdateStatus, onEditEvent, onDeleteEvent }: EventCardProps) => {
+export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditEvent, onDeleteEvent }: EventCardProps) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
   
@@ -67,6 +69,23 @@ export const EventCard = ({ event, allEvents, onUpdateStatus, onEditEvent, onDel
   const handleSlotClick = (index: number) => {
     setSelectedSlotIndex(index);
     setShowConfirmModal(true);
+  };
+
+  const handleExportToGoogleCalendar = () => {
+    const company = companies.find(c => c.id === event.companyId);
+    if (company && event.confirmedSlot) {
+      console.log('=== Googleカレンダー登録デバッグ ===');
+      console.log('確定スロット:', event.confirmedSlot);
+      debugDateConversion(event.confirmedSlot.startTime);
+      debugDateConversion(event.confirmedSlot.endTime);
+      
+      const success = exportToGoogleCalendar(event, company);
+      if (success) {
+        console.log('Googleカレンダーに登録しました');
+      } else {
+        console.error('Googleカレンダーへの登録に失敗しました');
+      }
+    }
   };
   
   return (
@@ -163,13 +182,24 @@ export const EventCard = ({ event, allEvents, onUpdateStatus, onEditEvent, onDel
             </Button>
           )}
           {event.status === 'confirmed' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onUpdateStatus(event.id, 'candidate')}
-            >
-              候補に戻す
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onUpdateStatus(event.id, 'candidate')}
+                className="text-gray-600 hover:text-gray-700"
+              >
+                候補に戻す
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleExportToGoogleCalendar}
+                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Googleカレンダーに追加
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>
