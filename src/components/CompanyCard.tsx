@@ -10,8 +10,20 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+const selectionStageOptions: SelectionStage[] = [
+  'document_review',
+  'first_interview',
+  'second_interview',
+  'final_interview',
+  'offer',
+  'rejected'
+];
 
 interface CompanyCardProps {
   company: Company;
@@ -31,12 +43,12 @@ const stageLabels: Record<SelectionStage, string> = {
 };
 
 const stageColors: Record<SelectionStage, string> = {
-  document_review: 'bg-pending text-pending-foreground',
-  first_interview: 'bg-candidate text-candidate-foreground',
-  second_interview: 'bg-candidate text-candidate-foreground',
-  final_interview: 'bg-candidate text-candidate-foreground',
-  offer: 'bg-confirmed text-confirmed-foreground',
-  rejected: 'bg-rejected text-rejected-foreground'
+  document_review: 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+  first_interview: 'bg-blue-100 text-blue-700 hover:bg-blue-200',
+  second_interview: 'bg-orange-100 text-orange-700 hover:bg-orange-200',
+  final_interview: 'bg-purple-100 text-purple-700 hover:bg-purple-200',
+  offer: 'bg-green-100 text-green-700 hover:bg-green-200',
+  rejected: 'bg-red-100 text-red-700 hover:bg-red-200'
 };
 
 export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onDeleteCompany }: CompanyCardProps) => {
@@ -53,7 +65,10 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
             <CardTitle className="text-lg">{company.name}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className={cn(stageColors[company.currentStage])}>
+            <Badge className={cn(
+              stageColors[company.currentStage],
+              "transition-colors duration-200 cursor-default"
+            )}>
               {stageLabels[company.currentStage]}
             </Badge>
             <DropdownMenu>
@@ -68,10 +83,24 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
                   詳細を表示
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onUpdateStage(company.id, company.currentStage)}>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  選考ステージを変更
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    選考ステージを変更
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {selectionStageOptions.map((stage) => (
+                      <DropdownMenuItem
+                        key={stage}
+                        onClick={() => onUpdateStage(company.id, stage)}
+                        className={company.currentStage === stage ? 'bg-accent' : ''}
+                      >
+                        {stageLabels[stage]}
+                        {company.currentStage === stage && ' (現在)'}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => onDeleteCompany(company.id)}

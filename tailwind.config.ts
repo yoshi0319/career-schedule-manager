@@ -70,10 +70,6 @@ export default {
 					DEFAULT: 'hsl(var(--confirmed))',
 					foreground: 'hsl(var(--confirmed-foreground))'
 				},
-				pending: {
-					DEFAULT: 'hsl(var(--pending))',
-					foreground: 'hsl(var(--pending-foreground))'
-				},
 				rejected: {
 					DEFAULT: 'hsl(var(--rejected))',
 					foreground: 'hsl(var(--rejected-foreground))'

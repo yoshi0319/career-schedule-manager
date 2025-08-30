@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, TrendingUp, Building2, Clock } from 'lucide-react';
+import { Calendar, Building2, Clock } from 'lucide-react';
 import { useJobHuntingData } from '@/hooks/useJobHuntingData';
 import { CompanyCard } from '@/components/CompanyCard';
 import { EventCard } from '@/components/EventCard';
@@ -34,7 +34,6 @@ const Index = () => {
   const upcomingEvents = getUpcomingEvents();
   const confirmedEventsCount = events.filter(e => e.status === 'confirmed').length;
   const candidateEventsCount = events.filter(e => e.status === 'candidate').length;
-  const pendingEventsCount = events.filter(e => e.status === 'pending').length;
 
   const handleViewCompanyDetails = (company: Company) => {
     setSelectedCompany(company);
@@ -80,7 +79,7 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">総企業数</CardTitle>
@@ -111,17 +110,6 @@ const Index = () => {
             <CardContent>
               <div className="text-2xl font-bold text-candidate">{candidateEventsCount}</div>
               <p className="text-xs text-muted-foreground">調整中の予定</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">返信待ち</CardTitle>
-              <TrendingUp className="h-4 w-4 text-pending" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-pending">{pendingEventsCount}</div>
-              <p className="text-xs text-muted-foreground">企業からの返信待ち</p>
             </CardContent>
           </Card>
         </div>

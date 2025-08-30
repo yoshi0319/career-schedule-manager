@@ -11,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, CalendarPlus, X, AlertTriangle, Calendar } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, CalendarPlus, X, AlertTriangle, Calendar, Edit, Check } from 'lucide-react';
 import { Company, Event, EventType, TimeSlot } from '@/types';
 import { checkTimeSlotConflict, checkConfirmedEventConflict, formatTimeSlotWithDate, addBufferToTimeSlot } from '@/lib/conflictDetection';
+import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 
@@ -51,6 +53,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   const [endTimeInput, setEndTimeInput] = useState<Date | undefined>(undefined);
   const [conflicts, setConflicts] = useState<{ hasConflict: boolean; conflictingEvents: Event[] }>({ hasConflict: false, conflictingEvents: [] });
   const [candidateAddError, setCandidateAddError] = useState<string>("");
+  const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
 
   const isEditMode = !!editEvent;
 
@@ -139,6 +142,70 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   const removeCandidateSlot = (index: number) => {
     setCandidateSlots(prev => prev.filter((_, i) => i !== index));
     setConflicts({ hasConflict: false, conflictingEvents: [] });
+    setEditingSlotIndex(null);
+  };
+
+  const startEditSlot = (index: number) => {
+    const slot = candidateSlots[index];
+    setStartTimeInput(slot.startTime);
+    setEndTimeInput(slot.endTime);
+    setEditingSlotIndex(index);
+    setCandidateAddError("");
+  };
+
+  const cancelEditSlot = () => {
+    setStartTimeInput(undefined);
+    setEndTimeInput(undefined);
+    setEditingSlotIndex(null);
+    setCandidateAddError("");
+  };
+
+  const updateCandidateSlot = () => {
+    setCandidateAddError("");
+    if (!startTimeInput || !endTimeInput || editingSlotIndex === null) return;
+    if (!(startTimeInput < endTimeInput)) return;
+
+    const newSlot: TimeSlot = { startTime: startTimeInput, endTime: endTimeInput };
+
+    // 編集中のスロット以外をチェック対象にする
+    const otherSlots = candidateSlots.filter((_, i) => i !== editingSlotIndex);
+    
+    // 1) 確定済みイベントとの競合（前後30分含む）
+    const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
+    setConflicts(confirmedConflictResult);
+    if (confirmedConflictResult.hasConflict) {
+      return;
+    }
+
+    // 2) 候補中の他企業の予定との競合（前後30分含む）
+    const existingCandidateSlots = getAllExistingCandidateSlots();
+    for (const { slot, event } of existingCandidateSlots) {
+      const buffered = addBufferToTimeSlot(slot);
+      if (timeSlotsOverlap(newSlot, buffered)) {
+        setCandidateAddError(`予定一覧に表示されている企業「${event.companyName}」の候補時間と重複しています（前後30分を含む）。`);
+        return;
+      }
+    }
+
+    // 3) 他の候補日との競合（編集中を除く）
+    for (const slot of otherSlots) {
+      const buffered = addBufferToTimeSlot(slot);
+      if (timeSlotsOverlap(newSlot, buffered)) {
+        setCandidateAddError("他の候補日の前後30分内と重複しています。");
+        return;
+      }
+    }
+
+    // 更新処理
+    setCandidateSlots(prev => {
+      const updated = [...prev];
+      updated[editingSlotIndex] = newSlot;
+      return updated.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    });
+    
+    setStartTimeInput(undefined);
+    setEndTimeInput(undefined);
+    setEditingSlotIndex(null);
   };
 
   const onSubmit = (data: EventFormData) => {
@@ -334,16 +401,39 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                   />
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addCandidateSlot}
-                disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                時間枠を追加
-              </Button>
+              {editingSlotIndex !== null ? (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={updateCandidateSlot}
+                    disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput}
+                    className="flex-1"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    更新
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={cancelEditSlot}
+                    className="flex-1"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    キャンセル
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addCandidateSlot}
+                  disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  時間枠を追加
+                </Button>
+              )}
               
               {(conflicts.hasConflict || candidateAddError) && (
                 <Alert className="border-destructive bg-destructive/5">
@@ -382,20 +472,44 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                       </div>
                       <div className="space-y-2">
                         {candidateSlots.map((slot, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-green-200">
+                          <div key={index} className={cn(
+                            "flex items-center justify-between p-3 rounded-lg border",
+                            editingSlotIndex === index 
+                              ? "bg-blue-50 border-blue-200" 
+                              : "bg-white border-green-200"
+                          )}>
                             <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-green-600" />
+                              <Calendar className={cn(
+                                "h-4 w-4",
+                                editingSlotIndex === index ? "text-blue-600" : "text-green-600"
+                              )} />
                               <span className="text-sm font-medium">{formatTimeSlotWithDate(slot)}</span>
+                              {editingSlotIndex === index && (
+                                <Badge variant="secondary" className="text-xs">編集中</Badge>
+                              )}
                             </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeCandidateSlot(index)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => startEditSlot(index)}
+                                disabled={editingSlotIndex !== null && editingSlotIndex !== index}
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeCandidateSlot(index)}
+                                disabled={editingSlotIndex !== null && editingSlotIndex !== index}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>

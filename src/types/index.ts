@@ -1,4 +1,4 @@
-export type EventStatus = 'candidate' | 'confirmed' | 'pending' | 'rejected';
+export type EventStatus = 'candidate' | 'confirmed' | 'rejected';
 export type EventType = 'interview' | 'info_session' | 'group_discussion' | 'final_interview';
 export type SelectionStage = 'document_review' | 'first_interview' | 'second_interview' | 'final_interview' | 'offer' | 'rejected';
 

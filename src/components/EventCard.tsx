@@ -47,14 +47,12 @@ const eventTypeLabels: Record<EventType, string> = {
 const statusLabels: Record<EventStatus, string> = {
   candidate: '候補日',
   confirmed: '確定',
-  pending: '返信待ち',
   rejected: 'キャンセル'
 };
 
 const statusColors: Record<EventStatus, string> = {
   candidate: 'bg-candidate text-candidate-foreground',
   confirmed: 'bg-confirmed text-confirmed-foreground',
-  pending: 'bg-pending text-pending-foreground',
   rejected: 'bg-rejected text-rejected-foreground'
 };
 
@@ -157,21 +155,12 @@ export const EventCard = ({ event, allEvents, onUpdateStatus, onEditEvent, onDel
 
         <div className="flex gap-2 pt-2">
           {event.status === 'candidate' && (
-            <>
-              <Button
-                size="sm"
-                onClick={() => setShowConfirmModal(true)}
-              >
-                確認
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onUpdateStatus(event.id, 'pending')}
-              >
-                返信待ち
-              </Button>
-            </>
+            <Button
+              size="sm"
+              onClick={() => setShowConfirmModal(true)}
+            >
+              確認
+            </Button>
           )}
           {event.status === 'confirmed' && (
             <Button
