@@ -380,7 +380,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
               <div>
                 <FormLabel className="text-base font-medium">候補日程</FormLabel>
                 <p className="text-sm text-muted-foreground mt-1">
-                  面接可能な日時を複数設定してください（10分刻みで選択可能）
+                  面接可能な日時を複数設定してください（5分刻みで選択可能）
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
