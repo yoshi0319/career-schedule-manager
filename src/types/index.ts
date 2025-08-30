@@ -8,6 +8,7 @@ export interface Company {
   industry: string;
   position: string;
   currentStage: SelectionStage;
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }

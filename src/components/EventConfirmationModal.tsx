@@ -3,12 +3,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Event, TimeSlot } from '@/types';
-import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
-import { Clock, Calendar } from 'lucide-react';
+import { formatTimeSlotWithDate, checkConfirmedEventConflict } from '@/lib/conflictDetection';
+import { Clock, Calendar, AlertTriangle } from 'lucide-react';
 
 interface EventConfirmationModalProps {
   event: Event;
+  allEvents: Event[];
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (selectedSlot: TimeSlot) => void;
@@ -17,6 +19,7 @@ interface EventConfirmationModalProps {
 
 export const EventConfirmationModal = ({ 
   event, 
+  allEvents,
   isOpen, 
   onClose, 
   onConfirm,
@@ -24,6 +27,7 @@ export const EventConfirmationModal = ({
 }: EventConfirmationModalProps) => {
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(initialSelectedSlotIndex);
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [conflictError, setConflictError] = useState<string>('');
 
   const selectedSlot = event.candidateSlots[selectedSlotIndex];
   
@@ -59,6 +63,16 @@ export const EventConfirmationModal = ({
         startTime: confirmedStartTime,
         endTime: confirmedEndTime
       };
+
+      // 確定時の重複チェック（確定済みイベントのみ）
+      const otherEvents = allEvents.filter(e => e.id !== event.id);
+      const conflictResult = checkConfirmedEventConflict(confirmedSlot, otherEvents);
+      
+      if (conflictResult.hasConflict) {
+        const conflictingEvent = conflictResult.conflictingEvents[0];
+        setConflictError(`この時間は「${conflictingEvent.companyName}」の予定と重複しています（前後30分を含む）。`);
+        return;
+      }
       
       onConfirm(confirmedSlot);
       onClose();
@@ -68,6 +82,12 @@ export const EventConfirmationModal = ({
   const handleSlotChange = (index: number) => {
     setSelectedSlotIndex(index);
     setSelectedTime(''); // 時間選択をリセット
+    setConflictError(''); // エラーをクリア
+  };
+
+  const handleTimeSelect = (time: string) => {
+    setSelectedTime(time);
+    setConflictError(''); // エラーをクリア
   };
 
   // モーダルが開かれた際に、選択された候補日を設定
@@ -75,6 +95,7 @@ export const EventConfirmationModal = ({
     if (isOpen) {
       setSelectedSlotIndex(initialSelectedSlotIndex);
       setSelectedTime('');
+      setConflictError('');
     }
   }, [isOpen, initialSelectedSlotIndex]);
 
@@ -132,7 +153,7 @@ export const EventConfirmationModal = ({
                     type="button"
                     variant={selectedTime === time ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedTime(time)}
+                    onClick={() => handleTimeSelect(time)}
                     className="w-full justify-start"
                   >
                     {time}
@@ -151,6 +172,16 @@ export const EventConfirmationModal = ({
             </div>
           )}
         </div>
+
+        {/* エラー表示 */}
+        {conflictError && (
+          <Alert className="border-destructive bg-destructive/5">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive">
+              <span className="font-medium">{conflictError}</span>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <DialogFooter className="flex gap-2">
           <Button variant="outline" onClick={onClose}>

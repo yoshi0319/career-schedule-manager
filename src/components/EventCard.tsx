@@ -2,10 +2,17 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, MapPin, Video } from 'lucide-react';
+import { Calendar, Clock, MapPin, Video, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { Event, EventType, EventStatus, TimeSlot } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // 開始時間のみを表示する関数
 const formatStartTimeWithDate = (slot: TimeSlot): string => {
@@ -24,7 +31,10 @@ import { EventConfirmationModal } from './EventConfirmationModal';
 
 interface EventCardProps {
   event: Event;
+  allEvents: Event[];
   onUpdateStatus: (eventId: string, status: EventStatus, confirmedSlot?: TimeSlot) => void;
+  onEditEvent: (event: Event) => void;
+  onDeleteEvent: (eventId: string) => void;
 }
 
 const eventTypeLabels: Record<EventType, string> = {
@@ -48,7 +58,7 @@ const statusColors: Record<EventStatus, string> = {
   rejected: 'bg-rejected text-rejected-foreground'
 };
 
-export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
+export const EventCard = ({ event, allEvents, onUpdateStatus, onEditEvent, onDeleteEvent }: EventCardProps) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
   
@@ -69,9 +79,32 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
             <CardTitle className="text-lg">{event.title}</CardTitle>
             <div className="text-sm text-muted-foreground">{event.companyName}</div>
           </div>
-          <Badge className={cn(statusColors[event.status])}>
-            {statusLabels[event.status]}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className={cn(statusColors[event.status])}>
+              {statusLabels[event.status]}
+            </Badge>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEditEvent(event)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  編集
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => onDeleteEvent(event.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  削除
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -154,6 +187,7 @@ export const EventCard = ({ event, onUpdateStatus }: EventCardProps) => {
       
       <EventConfirmationModal
         event={event}
+        allEvents={allEvents}
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleConfirmSlot}

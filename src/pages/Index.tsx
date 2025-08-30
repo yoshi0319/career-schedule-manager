@@ -9,7 +9,9 @@ import { CompanyCard } from '@/components/CompanyCard';
 import { EventCard } from '@/components/EventCard';
 import { AddCompanyForm } from '@/components/AddCompanyForm';
 import { AddEventForm } from '@/components/AddEventForm';
+import { CompanyDetailModal } from '@/components/CompanyDetailModal';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
+import { Company, SelectionStage, Event } from '@/types';
 
 const Index = () => {
   const { 
@@ -17,17 +19,48 @@ const Index = () => {
     events, 
     addCompany, 
     addEvent,
+    updateEvent,
+    deleteEvent,
     updateEventStatus, 
+    updateCompanyStage,
+    deleteCompany,
     getUpcomingEvents 
   } = useJobHuntingData();
+
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [showCompanyDetail, setShowCompanyDetail] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   const upcomingEvents = getUpcomingEvents();
   const confirmedEventsCount = events.filter(e => e.status === 'confirmed').length;
   const candidateEventsCount = events.filter(e => e.status === 'candidate').length;
   const pendingEventsCount = events.filter(e => e.status === 'pending').length;
 
-  const getCompanyEventCount = (companyId: string) => {
-    return events.filter(event => event.companyId === companyId).length;
+  const handleViewCompanyDetails = (company: Company) => {
+    setSelectedCompany(company);
+    setShowCompanyDetail(true);
+  };
+
+  const handleUpdateCompanyStage = (companyId: string, stage: SelectionStage) => {
+    updateCompanyStage(companyId, stage);
+  };
+
+  const handleDeleteCompany = (companyId: string) => {
+    deleteCompany(companyId);
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+  };
+
+  const handleCloseEditEvent = () => {
+    setEditingEvent(null);
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    if (confirm('この予定を削除しますか？')) {
+      deleteEvent(eventId);
+    }
   };
 
   return (
@@ -121,8 +154,10 @@ const Index = () => {
                     <CompanyCard
                       key={company.id}
                       company={company}
-                      eventCount={getCompanyEventCount(company.id)}
-                      onViewDetails={() => {}}
+                      events={events}
+                      onViewDetails={() => handleViewCompanyDetails(company)}
+                      onUpdateStage={handleUpdateCompanyStage}
+                      onDeleteCompany={handleDeleteCompany}
                     />
                   ))}
                 </div>
@@ -135,10 +170,22 @@ const Index = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">予定一覧</h2>
                 <AddEventForm 
+                  key="add-event-form"
                   companies={companies}
                   events={events}
                   onAddEvent={addEvent} 
                 />
+                {editingEvent && (
+                  <AddEventForm 
+                    key={`edit-event-form-${editingEvent.id}`}
+                    companies={companies}
+                    events={events}
+                    editEvent={editingEvent}
+                    onAddEvent={addEvent}
+                    onUpdateEvent={updateEvent}
+                    onClose={handleCloseEditEvent}
+                  />
+                )}
               </div>
               {events.length === 0 ? (
                 <Card>
@@ -156,7 +203,10 @@ const Index = () => {
                     <EventCard
                       key={event.id}
                       event={event}
+                      allEvents={events}
                       onUpdateStatus={updateEventStatus}
+                      onEditEvent={handleEditEvent}
+                      onDeleteEvent={handleDeleteEvent}
                     />
                   ))}
                 </div>
@@ -207,6 +257,21 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* 企業詳細モーダル */}
+      {selectedCompany && (
+        <CompanyDetailModal
+          company={selectedCompany}
+          events={events}
+          isOpen={showCompanyDetail}
+          onClose={() => {
+            setShowCompanyDetail(false);
+            setSelectedCompany(null);
+          }}
+          onUpdateStage={handleUpdateCompanyStage}
+          onDeleteCompany={handleDeleteCompany}
+        />
+      )}
     </div>
   );
 };

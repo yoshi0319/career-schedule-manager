@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, CalendarPlus, X, AlertTriangle, Calendar } from 'lucide-react';
 import { Company, Event, EventType, TimeSlot } from '@/types';
-import { checkTimeSlotConflict, formatTimeSlotWithDate, addBufferToTimeSlot } from '@/lib/conflictDetection';
+import { checkTimeSlotConflict, checkConfirmedEventConflict, formatTimeSlotWithDate, addBufferToTimeSlot } from '@/lib/conflictDetection';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 
@@ -30,7 +31,10 @@ type EventFormData = z.infer<typeof eventSchema>;
 interface AddEventFormProps {
   companies: Company[];
   events: Event[];
+  editEvent?: Event;
   onAddEvent: (event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onUpdateEvent?: (eventId: string, event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onClose?: () => void;
 }
 
 const eventTypeOptions = [
@@ -40,35 +44,46 @@ const eventTypeOptions = [
   { value: 'final_interview', label: '最終面接' },
 ];
 
-export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [candidateSlots, setCandidateSlots] = useState<TimeSlot[]>([]);
+export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdateEvent, onClose }: AddEventFormProps) => {
+  const [isOpen, setIsOpen] = useState(!!editEvent);
+  const [candidateSlots, setCandidateSlots] = useState<TimeSlot[]>(editEvent?.candidateSlots || []);
   const [startTimeInput, setStartTimeInput] = useState<Date | undefined>(undefined);
   const [endTimeInput, setEndTimeInput] = useState<Date | undefined>(undefined);
   const [conflicts, setConflicts] = useState<{ hasConflict: boolean; conflictingEvents: Event[] }>({ hasConflict: false, conflictingEvents: [] });
   const [candidateAddError, setCandidateAddError] = useState<string>("");
 
+  const isEditMode = !!editEvent;
+
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
-      title: '',
-      companyId: '',
-      type: 'interview',
-      isOnline: false,
-      location: '',
-      notes: '',
+      title: editEvent?.title || '',
+      companyId: editEvent?.companyId || '',
+      type: editEvent?.type || 'interview',
+      isOnline: editEvent?.isOnline || false,
+      location: editEvent?.location || '',
+      notes: editEvent?.notes || '',
     },
   });
+
+  // 編集モードでモーダルを開く
+  React.useEffect(() => {
+    if (editEvent) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  }, [editEvent]);
 
   function timeSlotsOverlap(a: TimeSlot, b: TimeSlot): boolean {
     return a.startTime < b.endTime && a.endTime > b.startTime;
   }
 
-  // 予定一覧に表示されている企業の候補時間を全て取得
+  // 予定一覧に表示されている企業の候補時間を全て取得（確定済みイベントは除外）
   const getAllExistingCandidateSlots = (): Array<{ slot: TimeSlot; event: Event }> => {
     const allSlots: Array<{ slot: TimeSlot; event: Event }> = [];
     
-    // 既存のイベントから候補時間を取得
+    // 既存のイベントから候補時間を取得（candidateステータスのみ）
     events.forEach(event => {
       if (event.status === 'candidate') {
         event.candidateSlots.forEach(slot => {
@@ -87,14 +102,14 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
 
     const newSlot: TimeSlot = { startTime: startTimeInput, endTime: endTimeInput };
 
-    // 1) 既存イベントとの競合（前後30分含む）
-    const conflictResult = checkTimeSlotConflict(newSlot, events);
-    setConflicts(conflictResult);
-    if (conflictResult.hasConflict) {
+    // 1) 確定済みイベントとの競合（前後30分含む）
+    const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
+    setConflicts(confirmedConflictResult);
+    if (confirmedConflictResult.hasConflict) {
       return;
     }
 
-    // 2) 予定一覧に表示されている企業の候補時間との競合（前後30分含む）
+    // 2) 候補中の他企業の予定との競合（前後30分含む）
     const existingCandidateSlots = getAllExistingCandidateSlots();
     for (const { slot, event } of existingCandidateSlots) {
       const buffered = addBufferToTimeSlot(slot);
@@ -134,41 +149,62 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
     const selectedCompany = companies.find(c => c.id === data.companyId);
     if (!selectedCompany) return;
 
-    const newEvent: Omit<Event, 'id' | 'createdAt' | 'updatedAt'> = {
+    const eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'> = {
       companyId: data.companyId,
       companyName: selectedCompany.name,
       title: data.title,
       type: data.type as EventType,
-      status: 'candidate',
+      status: editEvent?.status || 'candidate',
       candidateSlots: candidateSlots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime()),
+      confirmedSlot: editEvent?.confirmedSlot,
       isOnline: data.isOnline,
       location: data.isOnline ? undefined : data.location,
       notes: data.notes,
     };
 
-    onAddEvent(newEvent);
+    if (isEditMode && editEvent && onUpdateEvent) {
+      onUpdateEvent(editEvent.id, eventData);
+    } else {
+      onAddEvent(eventData);
+    }
     
+    handleClose();
+  };
+
+  const handleClose = () => {
     // Reset form
-    form.reset();
-    setCandidateSlots([]);
+    if (!isEditMode) {
+      form.reset();
+      setCandidateSlots([]);
+    } else {
+      setCandidateSlots(editEvent?.candidateSlots || []);
+    }
     setStartTimeInput(undefined);
     setEndTimeInput(undefined);
     setConflicts({ hasConflict: false, conflictingEvents: [] });
+    setCandidateAddError("");
     setIsOpen(false);
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <CalendarPlus className="h-4 w-4" />
-          面接日程追加
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={isEditMode ? handleClose : setIsOpen}>
+      {!isEditMode && (
+        <DialogTrigger asChild>
+          <Button>
+            <CalendarPlus className="h-4 w-4" />
+            面接日程追加
+          </Button>
+        </DialogTrigger>
+      )}
       
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>新しい面接日程を追加</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? '面接日程を編集' : '新しい面接日程を追加'}
+          </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -277,7 +313,7 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
               <div>
                 <FormLabel className="text-base font-medium">候補日程</FormLabel>
                 <p className="text-sm text-muted-foreground mt-1">
-                  面接可能な日時を複数設定してください（5分刻みで選択可能）
+                  面接可能な日時を複数設定してください（10分刻みで選択可能）
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -398,7 +434,7 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsOpen(false)}
+                onClick={handleClose}
                 className="flex-1"
               >
                 キャンセル
@@ -408,7 +444,7 @@ export const AddEventForm = ({ companies, events, onAddEvent }: AddEventFormProp
                 disabled={candidateSlots.length === 0}
                 className="flex-1"
               >
-                追加
+                {isEditMode ? '更新' : '追加'}
               </Button>
             </div>
           </form>
