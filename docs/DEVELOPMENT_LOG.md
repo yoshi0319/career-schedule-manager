@@ -169,7 +169,7 @@ if (loading) return <Loading />
 ```go
 corsConfig.AllowOrigins = []string{
     "http://localhost:5173", 
-    "http://localhost:5174", // Viteの別ポート対応
+    "http://localhost:5174", // Viteは時々別ポートを使用
     cfg.FrontendURL,
 }
 ```
@@ -183,6 +183,40 @@ const { data: companies } = useQuery({
     enabled: !!user, // ログイン時のみ実行
 })
 ```
+
+### データフェッチパフォーマンス最適化（2025年8月実装）
+**React Query 最適化:**
+- `staleTime`: 5分間キャッシュ有効
+- `gcTime`: 10分間メモリ保持
+- `refetchOnWindowFocus`: false（ウィンドウフォーカス時の再取得無効化）
+- `refetchOnMount`: false（コンポーネントマウント時の再取得無効化）
+- `retry`: 1回（リトライ回数制限）
+- `retryDelay`: 1秒（リトライ間隔最適化）
+
+**フロントエンド最適化:**
+- スケルトンローディング実装（ユーザー体験向上）
+- `useMemo`による統計計算のメモ化
+- パフォーマンス監視ログ（開発環境）
+
+**バックエンド最適化:**
+- データベースクエリ最適化（必要なフィールドのみ選択）
+- インデックス活用（updated_at, created_at, status）
+- レスポンス圧縮・キャッシュ制御
+- レート制限（100リクエスト/分）
+
+**データベースインデックス最適化:**
+```sql
+CREATE INDEX companies_updated_at_idx ON companies(updated_at DESC);
+CREATE INDEX events_created_at_idx ON events(created_at DESC);
+CREATE INDEX events_status_idx ON events(status);
+CREATE INDEX events_user_id_status_idx ON events(user_id, status);
+```
+
+**期待される効果:**
+- 初回読み込み時間: 50-80%短縮
+- 再読み込み時間: 80-90%短縮
+- ユーザー体験: スケルトンローディングによる体感速度向上
+- サーバー負荷: 不要なクエリ削減による負荷軽減
 
 ## 🛠️ エラーハンドリング強化
 

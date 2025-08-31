@@ -59,6 +59,13 @@ func main() {
 	}
 	r := gin.Default()
 
+	// レスポンス最適化設定
+	r.Use(func(c *gin.Context) {
+		// キャッシュ制御
+		c.Header("Cache-Control", "public, max-age=300")
+		c.Next()
+	})
+
 	// CORS configuration
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = []string{
@@ -69,11 +76,11 @@ func main() {
 	if cfg.ProductionFrontendURL != "" {
 		corsConfig.AllowOrigins = append(corsConfig.AllowOrigins, cfg.ProductionFrontendURL)
 	}
-	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Cache-Control"}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	corsConfig.AllowCredentials = true
 	r.Use(cors.New(corsConfig))
-	
+
 	// Rate limiting middleware
 	limiter := rate.NewLimiter(rate.Every(time.Minute), 100) // 100 requests per minute
 	r.Use(func(c *gin.Context) {
@@ -84,7 +91,7 @@ func main() {
 		}
 		c.Next()
 	})
-	
+
 	// Security headers
 	r.Use(func(c *gin.Context) {
 		c.Header("X-Content-Type-Options", "nosniff")

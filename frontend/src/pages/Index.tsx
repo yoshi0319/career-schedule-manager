@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,47 @@ import { CompanyDetailModal } from '@/components/CompanyDetailModal';
 import { JobCalendar } from '@/components/JobCalendar';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
 import { Company, SelectionStage, Event, EventStatus } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// スケルトンローディングコンポーネント
+const LoadingSkeleton = () => (
+  <div className="min-h-screen p-4 space-y-6">
+    {/* ヘッダースケルトン */}
+    <div className="flex justify-between items-center">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-10 w-32" />
+    </div>
+    
+    {/* 統計カードスケルトン */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {[1, 2, 3].map((i) => (
+        <Card key={i}>
+          <CardHeader className="pb-2">
+            <Skeleton className="h-4 w-24" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-16" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+    
+    {/* タブスケルトン */}
+    <Tabs defaultValue="companies" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </TabsList>
+      
+      <TabsContent value="companies" className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-24 w-full" />
+        ))}
+      </TabsContent>
+    </Tabs>
+  </div>
+);
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
@@ -37,34 +78,6 @@ const Index = () => {
   const [showCompanyDetail, setShowCompanyDetail] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
-  // 認証チェック（フック後に実行）
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-          <p className="mt-4 text-gray-600">読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthForm />;
-  }
-
-  // データローディング状態
-  if (companiesLoading || eventsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-          <p className="mt-4 text-gray-600">データを読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
-
   // 今後の予定を取得（ローカル計算）
   const getUpcomingEvents = () => {
     const now = new Date();
@@ -81,9 +94,24 @@ const Index = () => {
       .slice(0, 5);
   };
 
-  const upcomingEvents = getUpcomingEvents();
-  const confirmedEventsCount = events.filter(e => e.status === 'confirmed').length;
-  const candidateEventsCount = events.filter(e => e.status === 'candidate').length;
+  // 統計データをメモ化して再計算を防ぐ（フック順序を維持）
+  const upcomingEvents = useMemo(() => getUpcomingEvents(), [events]);
+  const confirmedEventsCount = useMemo(() => events.filter(e => e.status === 'confirmed').length, [events]);
+  const candidateEventsCount = useMemo(() => events.filter(e => e.status === 'candidate').length, [events]);
+
+  // 認証チェック（フック後に実行）
+  if (loading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (!user) {
+    return <AuthForm />;
+  }
+
+  // データローディング状態（スケルトンローディングを表示）
+  if (companiesLoading || eventsLoading) {
+    return <LoadingSkeleton />;
+  }
 
   const handleViewCompanyDetails = (company: Company) => {
     setSelectedCompany(company);
@@ -151,7 +179,18 @@ const Index = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={signOut}
+                onClick={async () => {
+                  try {
+                    await signOut()
+                  } catch (error) {
+                    if (import.meta.env.DEV) {
+                      console.error('Logout failed:', error)
+                    }
+                    // エラーが発生しても強制的にログアウト状態にする
+                    window.location.reload()
+                  }
+                }}
+                disabled={false}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 ログアウト
