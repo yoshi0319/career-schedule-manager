@@ -258,7 +258,37 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        {/* スマホ用：横型コンパクト表示 */}
+        <div className="block sm:hidden mb-4">
+          <div className="flex gap-2">
+            <div className="flex-1 bg-card border border-border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">総企業数</span>
+                <Building2 className="h-3 w-3 text-muted-foreground" />
+              </div>
+              <div className="text-lg font-bold">{companies.length}</div>
+            </div>
+            
+            <div className="flex-1 bg-card border border-border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">確定予定</span>
+                <Calendar className="h-3 w-3 text-confirmed" />
+              </div>
+              <div className="text-lg font-bold text-confirmed">{confirmedEventsCount}</div>
+            </div>
+            
+            <div className="flex-1 bg-card border border-border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">候補日</span>
+                <Clock className="h-3 w-3 text-candidate" />
+              </div>
+              <div className="text-lg font-bold text-candidate">{candidateEventsCount}</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* PC用：従来通りの縦型カード */}
+        <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">総企業数</CardTitle>
