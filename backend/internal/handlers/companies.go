@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"net/http"
+	"html"
+	"strings"
 
 	"career-schedule-api/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
 )
 
@@ -30,11 +33,29 @@ func GetCompanies(db *gorm.DB) gin.HandlerFunc {
 
 func CreateCompany(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
+
 		userID := c.GetString("user_id")
 
 		var company models.Company
 		if err := c.ShouldBindJSON(&company); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// 入力値サニタイゼーション
+		company.Name = html.EscapeString(strings.TrimSpace(company.Name))
+		company.Industry = html.EscapeString(strings.TrimSpace(company.Industry))
+		company.Position = html.EscapeString(strings.TrimSpace(company.Position))
+		company.Notes = html.EscapeString(strings.TrimSpace(company.Notes))
+
+		// バリデーション
+		validate := validator.New()
+		if err := validate.Struct(&company); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed: " + err.Error()})
 			return
 		}
 
