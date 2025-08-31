@@ -17,16 +17,19 @@ import {
 
 // 開始時間のみを表示する関数
 const formatStartTimeWithDate = (slot: TimeSlot): string => {
-  const date = slot.startTime.toLocaleDateString('ja-JP', {
-    month: 'numeric',
+  const date = slot.start_time.toLocaleDateString('ja-JP', {
+    month: 'short',
     day: 'numeric',
     weekday: 'short'
   });
-  const time = slot.startTime.toLocaleTimeString('ja-JP', {
+  
+  const time = slot.start_time.toLocaleTimeString('ja-JP', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: false
   });
-  return `${date} ${time}〜`;
+  
+  return `${date} ${time}`;
 };
 import { EventConfirmationModal } from './EventConfirmationModal';
 
@@ -34,7 +37,7 @@ interface EventCardProps {
   event: Event;
   allEvents: Event[];
   companies: Company[];
-  onUpdateStatus: (eventId: string, status: EventStatus, confirmedSlot?: TimeSlot) => void;
+  onUpdateStatus: (eventId: string, status: EventStatus, confirmed_slot?: TimeSlot) => void;
   onEditEvent: (event: Event) => void;
   onDeleteEvent: (eventId: string) => void;
 }
@@ -72,12 +75,12 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
   };
 
   const handleExportToGoogleCalendar = () => {
-    const company = companies.find(c => c.id === event.companyId);
-    if (company && event.confirmedSlot) {
+    const company = companies.find(c => c.id === event.company_id);
+    if (company && event.confirmed_slot) {
       console.log('=== Googleカレンダー登録デバッグ ===');
-      console.log('確定スロット:', event.confirmedSlot);
-      debugDateConversion(event.confirmedSlot.startTime);
-      debugDateConversion(event.confirmedSlot.endTime);
+      console.log('確定スロット:', event.confirmed_slot);
+      debugDateConversion(event.confirmed_slot.start_time);
+      debugDateConversion(event.confirmed_slot.end_time);
       
       const success = exportToGoogleCalendar(event, company);
       if (success) {
@@ -94,7 +97,7 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <CardTitle className="text-lg">{event.title}</CardTitle>
-            <div className="text-sm text-muted-foreground">{event.companyName}</div>
+            <div className="text-sm text-muted-foreground">{event.company_name}</div>
           </div>
           <div className="flex items-center gap-2">
             <Badge className={cn(statusColors[event.status])}>
@@ -128,26 +131,26 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
         <div className="flex items-center gap-4 text-sm">
           <Badge variant="outline">{eventTypeLabels[event.type]}</Badge>
           <div className="flex items-center gap-1 text-muted-foreground">
-            {event.isOnline ? <Video className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
-            <span>{event.isOnline ? 'オンライン' : event.location || '会場未定'}</span>
+            {event.is_online ? <Video className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
+            <span>{event.is_online ? 'オンライン' : event.location || '会場未定'}</span>
           </div>
         </div>
         
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            {event.status === 'confirmed' && event.confirmedSlot ? (
+            {event.status === 'confirmed' && event.confirmed_slot ? (
               <span className="font-medium text-confirmed">
-                {formatStartTimeWithDate(event.confirmedSlot)} 確定
+                {formatStartTimeWithDate(event.confirmed_slot)} 確定
               </span>
             ) : (
-              <span>候補日 {event.candidateSlots.length}件</span>
+              <span>候補日 {event.candidate_slots.length}件</span>
             )}
           </div>
           
           {event.status === 'candidate' && (
             <div className="space-y-1">
-              {event.candidateSlots.slice(0, 3).map((slot, index) => (
+              {event.candidate_slots.slice(0, 3).map((slot, index) => (
                 <div key={index} className="text-sm text-muted-foreground ml-6">
                   <button
                     onClick={() => handleSlotClick(index)}
@@ -157,9 +160,9 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
                   </button>
                 </div>
               ))}
-              {event.candidateSlots.length > 3 && (
+              {event.candidate_slots.length > 3 && (
                 <div className="text-sm text-muted-foreground ml-6">
-                  他 {event.candidateSlots.length - 3}件
+                  他 {event.candidate_slots.length - 3}件
                 </div>
               )}
             </div>

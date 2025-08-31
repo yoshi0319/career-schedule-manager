@@ -22,7 +22,7 @@ export const useCreateCompany = () => {
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: (company: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>) =>
+    mutationFn: (company: Omit<Company, 'id' | 'created_at' | 'updated_at'>) =>
       apiClient.createCompany(company),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] })

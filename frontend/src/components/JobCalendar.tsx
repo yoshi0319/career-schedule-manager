@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Building2, Users, Video, MessageSquare, ExternalLink } from 'lucide-react';
-import { Event, Company } from '@/types';
+import { Event, Company, TimeSlot } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -18,10 +18,7 @@ interface DayEvent {
   event: Event;
   company: Company;
   type: 'confirmed' | 'candidate';
-  timeSlot: {
-    startTime: Date;
-    endTime: Date;
-  };
+  timeSlot: TimeSlot;
 }
 
 export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
@@ -32,10 +29,10 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
   const getUpcomingEvents = () => {
     const now = new Date();
     return events
-      .filter(event => event.confirmedSlot && event.confirmedSlot.startTime > now)
+      .filter(event => event.confirmed_slot && event.confirmed_slot.start_time > now)
       .sort((a, b) => {
-        const timeA = a.confirmedSlot?.startTime;
-        const timeB = b.confirmedSlot?.startTime;
+        const timeA = a.confirmed_slot?.start_time;
+        const timeB = b.confirmed_slot?.start_time;
         return (timeA?.getTime() || 0) - (timeB?.getTime() || 0);
       })
       .slice(0, 5); // 最大5件
@@ -45,7 +42,7 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
 
   // 一括Googleカレンダーエクスポート
   const handleBulkExport = () => {
-    const confirmedEvents = events.filter(event => event.confirmedSlot);
+    const confirmedEvents = events.filter(event => event.confirmed_slot);
     if (confirmedEvents.length === 0) {
       alert('確定した予定がありません');
       return;
@@ -106,23 +103,23 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
     const dayEvents: DayEvent[] = [];
 
     events.forEach(event => {
-      const company = getCompany(event.companyId);
+      const company = getCompany(event.company_id);
       if (!company) return;
 
       // 確定済みイベント
-      if (event.confirmedSlot && isSameDay(event.confirmedSlot.startTime, date)) {
+      if (event.confirmed_slot && isSameDay(event.confirmed_slot.start_time, date)) {
         dayEvents.push({
           event,
           company,
           type: 'confirmed',
-          timeSlot: event.confirmedSlot
+          timeSlot: event.confirmed_slot
         });
       }
 
       // 候補日イベント（確定していない場合のみ）
-      if (!event.confirmedSlot) {
-        event.candidateSlots.forEach(slot => {
-          if (isSameDay(slot.startTime, date)) {
+      if (!event.confirmed_slot) {
+        event.candidate_slots.forEach(slot => {
+          if (isSameDay(slot.start_time, date)) {
             dayEvents.push({
               event,
               company,
@@ -134,7 +131,7 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
       }
     });
 
-    return dayEvents.sort((a, b) => a.timeSlot.startTime.getTime() - b.timeSlot.startTime.getTime());
+    return dayEvents.sort((a, b) => a.timeSlot.start_time.getTime() - b.timeSlot.start_time.getTime());
   };
 
   // 選択された日付のイベント詳細を取得
@@ -177,8 +174,8 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {upcomingEvents.map((event) => {
-                const company = getCompany(event.companyId);
-                if (!company || !event.confirmedSlot) return null;
+                const company = getCompany(event.company_id);
+                if (!company || !event.confirmed_slot) return null;
                 
                 return (
                   <div
@@ -192,7 +189,7 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
                       <div className="font-medium text-sm truncate">{company.name}</div>
                       <div className="text-xs text-muted-foreground truncate">{event.title}</div>
                       <div className="text-xs font-medium text-confirmed">
-                        {format(event.confirmedSlot.startTime, 'M/d(E) HH:mm', { locale: ja })}
+                        {format(event.confirmed_slot.start_time, 'M/d(E) HH:mm', { locale: ja })}
                       </div>
                     </div>
                   </div>
@@ -305,7 +302,7 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
                               ? "bg-confirmed text-white" 
                               : "bg-candidate text-white"
                           )}
-                          title={`${dayEvent.company.name} - ${dayEvent.event.title} (${formatTime(dayEvent.timeSlot.startTime)})`}
+                          title={`${dayEvent.company.name} - ${dayEvent.event.title} (${formatTime(dayEvent.timeSlot.start_time)})`}
                         >
                           <div className="flex items-center gap-1">
                             <span className="text-[8px]">{getEventTypeIcon(dayEvent.event.type)}</span>
@@ -315,8 +312,8 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
                           </div>
                           <div className="truncate text-[8px] md:text-[9px] opacity-90">
                             {dayEvent.type === 'confirmed' 
-                              ? formatTime(dayEvent.timeSlot.startTime)
-                              : `${formatTime(dayEvent.timeSlot.startTime)}〜`
+                              ? formatTime(dayEvent.timeSlot.start_time)
+                              : `${formatTime(dayEvent.timeSlot.start_time)}〜`
                             }
                           </div>
                         </div>
@@ -371,8 +368,8 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
                       </Badge>
                       <div className="text-sm font-medium text-center">
                         {dayEvent.type === 'confirmed' 
-                          ? formatTime(dayEvent.timeSlot.startTime)
-                          : formatTimeRange(dayEvent.timeSlot.startTime, dayEvent.timeSlot.endTime)
+                          ? formatTime(dayEvent.timeSlot.start_time)
+                          : formatTimeRange(dayEvent.timeSlot.start_time, dayEvent.timeSlot.end_time)
                         }
                       </div>
                     </div>
@@ -390,7 +387,7 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
                         {dayEvent.event.title}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {dayEvent.event.isOnline ? (
+                        {dayEvent.event.is_online ? (
                           <span>🌐 オンライン</span>
                         ) : (
                           <span>📍 {dayEvent.event.location || 'オフライン'}</span>

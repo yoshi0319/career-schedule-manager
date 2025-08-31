@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"career-schedule-api/internal/models"
@@ -128,8 +129,8 @@ func ConfirmEvent(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var updateData struct {
-			ConfirmedSlot string `json:"confirmed_slot"`
-			Status        string `json:"status"`
+			ConfirmedSlot json.RawMessage `json:"confirmed_slot"`
+			Status        string          `json:"status"`
 		}
 
 		if err := c.ShouldBindJSON(&updateData); err != nil {

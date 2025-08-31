@@ -34,8 +34,8 @@ interface AddEventFormProps {
   companies: Company[];
   events: Event[];
   editEvent?: Event;
-  onAddEvent: (event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  onUpdateEvent?: (eventId: string, event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onAddEvent: (event: Omit<Event, 'id' | 'created_at' | 'updated_at'>) => void;
+  onUpdateEvent?: (eventId: string, event: Omit<Event, 'id' | 'created_at' | 'updated_at'>) => void;
   onClose?: () => void;
 }
 
@@ -48,7 +48,7 @@ const eventTypeOptions = [
 
 export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdateEvent, onClose }: AddEventFormProps) => {
   const [isOpen, setIsOpen] = useState(!!editEvent);
-  const [candidateSlots, setCandidateSlots] = useState<TimeSlot[]>(editEvent?.candidateSlots || []);
+  const [candidateSlots, setCandidateSlots] = useState<TimeSlot[]>(editEvent?.candidate_slots || []);
   const [startTimeInput, setStartTimeInput] = useState<Date | undefined>(undefined);
   const [endTimeInput, setEndTimeInput] = useState<Date | undefined>(undefined);
   const [conflicts, setConflicts] = useState<{ hasConflict: boolean; conflictingEvents: Event[] }>({ hasConflict: false, conflictingEvents: [] });
@@ -61,9 +61,9 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     resolver: zodResolver(eventSchema),
     defaultValues: {
       title: editEvent?.title || '',
-      companyId: editEvent?.companyId || '',
+      companyId: editEvent?.company_id || '',
       type: editEvent?.type || 'interview',
-      isOnline: editEvent?.isOnline || false,
+      isOnline: editEvent?.is_online || false,
       location: editEvent?.location || '',
       notes: editEvent?.notes || '',
     },
@@ -79,7 +79,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   }, [editEvent]);
 
   function timeSlotsOverlap(a: TimeSlot, b: TimeSlot): boolean {
-    return a.startTime < b.endTime && a.endTime > b.startTime;
+    return a.start_time < b.end_time && a.end_time > b.start_time;
   }
 
   // 予定一覧に表示されている企業の候補時間を全て取得（確定済みイベントは除外）
@@ -89,7 +89,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     // 既存のイベントから候補時間を取得（candidateステータスのみ）
     events.forEach(event => {
       if (event.status === 'candidate') {
-        event.candidateSlots.forEach(slot => {
+        event.candidate_slots.forEach(slot => {
           allSlots.push({ slot, event });
         });
       }
@@ -103,7 +103,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     if (!startTimeInput || !endTimeInput) return;
     if (!(startTimeInput < endTimeInput)) return;
 
-    const newSlot: TimeSlot = { startTime: startTimeInput, endTime: endTimeInput };
+    const newSlot: TimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
 
     // 1) 確定済みイベントとの競合（前後30分含む）
     const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
@@ -117,7 +117,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     for (const { slot, event } of existingCandidateSlots) {
       const buffered = addBufferToTimeSlot(slot);
       if (timeSlotsOverlap(newSlot, buffered)) {
-        setCandidateAddError(`予定一覧に表示されている企業「${event.companyName}」の候補時間と重複しています（前後30分を含む）。`);
+        setCandidateAddError(`予定一覧に表示されている企業「${event.company_name}」の候補時間と重複しています（前後30分を含む）。`);
         return;
       }
     }
@@ -133,7 +133,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
 
     // 追加し、日時昇順に並べ替える
     setCandidateSlots(prev =>
-      [...prev, newSlot].sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+      [...prev, newSlot].sort((a, b) => a.start_time.getTime() - b.start_time.getTime())
     );
     setStartTimeInput(undefined);
     setEndTimeInput(undefined);
@@ -147,8 +147,8 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
 
   const startEditSlot = (index: number) => {
     const slot = candidateSlots[index];
-    setStartTimeInput(slot.startTime);
-    setEndTimeInput(slot.endTime);
+    setStartTimeInput(slot.start_time);
+    setEndTimeInput(slot.end_time);
     setEditingSlotIndex(index);
     setCandidateAddError("");
   };
@@ -165,7 +165,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     if (!startTimeInput || !endTimeInput || editingSlotIndex === null) return;
     if (!(startTimeInput < endTimeInput)) return;
 
-    const newSlot: TimeSlot = { startTime: startTimeInput, endTime: endTimeInput };
+    const newSlot: TimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
 
     // 編集中のスロット以外をチェック対象にする
     const otherSlots = candidateSlots.filter((_, i) => i !== editingSlotIndex);
@@ -182,7 +182,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     for (const { slot, event } of existingCandidateSlots) {
       const buffered = addBufferToTimeSlot(slot);
       if (timeSlotsOverlap(newSlot, buffered)) {
-        setCandidateAddError(`予定一覧に表示されている企業「${event.companyName}」の候補時間と重複しています（前後30分を含む）。`);
+        setCandidateAddError(`予定一覧に表示されている企業「${event.company_name}」の候補時間と重複しています（前後30分を含む）。`);
         return;
       }
     }
@@ -200,7 +200,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     setCandidateSlots(prev => {
       const updated = [...prev];
       updated[editingSlotIndex] = newSlot;
-      return updated.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+      return updated.sort((a, b) => a.start_time.getTime() - b.start_time.getTime());
     });
     
     setStartTimeInput(undefined);
@@ -216,15 +216,15 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     const selectedCompany = companies.find(c => c.id === data.companyId);
     if (!selectedCompany) return;
 
-    const eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'> = {
-      companyId: data.companyId,
-      companyName: selectedCompany.name,
+    const eventData: Omit<Event, 'id' | 'created_at' | 'updated_at'> = {
+      company_id: data.companyId,
+      company_name: selectedCompany.name,
       title: data.title,
       type: data.type as EventType,
       status: editEvent?.status || 'candidate',
-      candidateSlots: candidateSlots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime()),
-      confirmedSlot: editEvent?.confirmedSlot,
-      isOnline: data.isOnline,
+      candidate_slots: candidateSlots.sort((a, b) => a.start_time.getTime() - b.start_time.getTime()),
+      confirmed_slot: editEvent?.confirmed_slot,
+      is_online: data.isOnline,
       location: data.isOnline ? undefined : data.location,
       notes: data.notes,
     };
@@ -244,7 +244,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       form.reset();
       setCandidateSlots([]);
     } else {
-      setCandidateSlots(editEvent?.candidateSlots || []);
+      setCandidateSlots(editEvent?.candidate_slots || []);
     }
     setStartTimeInput(undefined);
     setEndTimeInput(undefined);
@@ -452,7 +452,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                         <ul className="mt-2 ml-4 space-y-1">
                           {conflicts.conflictingEvents.map((event, idx) => (
                             <li key={idx} className="list-disc text-sm">
-                              <span className="font-medium">{event.companyName}</span> - {event.title}
+                              <span className="font-medium">{event.company_name}</span> - {event.title}
                             </li>
                           ))}
                         </ul>

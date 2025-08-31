@@ -5,71 +5,57 @@ import { Company, Event, EventStatus, SelectionStage, TimeSlot } from '@/types';
 const mockCompanies: Company[] = [
   {
     id: '1',
-    name: 'テックカンパニー株式会社',
+    name: '株式会社テックソリューション',
     industry: 'IT・ソフトウェア',
     position: 'フロントエンドエンジニア',
-    currentStage: 'first_interview',
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-20'),
-  },
-  {
-    id: '2',
-    name: '株式会社データソリューション',
-    industry: 'IT・データ分析',
-    position: 'データサイエンティスト',
-    currentStage: 'document_review',
-    createdAt: new Date('2024-01-10'),
-    updatedAt: new Date('2024-01-18'),
+    current_stage: 'first_interview',
+    notes: '技術面接でReactの実装について質問される予定',
+    created_at: new Date('2024-01-15'),
+    updated_at: new Date('2024-01-20'),
   }
 ];
 
 const mockEvents: Event[] = [
   {
     id: '1',
-    companyId: '1',
-    companyName: 'テックカンパニー株式会社',
+    company_id: '1',
+    company_name: '株式会社テックソリューション',
     title: '一次面接',
     type: 'interview',
-    status: 'candidate',
-    candidateSlots: [
-      {
-        startTime: new Date('2024-02-01T10:00:00'),
-        endTime: new Date('2024-02-01T12:00:00')
-      },
-      {
-        startTime: new Date('2024-02-02T14:00:00'),
-        endTime: new Date('2024-02-02T16:00:00')
-      },
-      {
-        startTime: new Date('2024-02-05T10:30:00'),
-        endTime: new Date('2024-02-05T12:30:00')
-      }
-    ],
-    location: '東京オフィス',
-    isOnline: false,
-    notes: '履歴書とポートフォリオを持参',
-    createdAt: new Date('2024-01-20'),
-    updatedAt: new Date('2024-01-20'),
+    status: 'confirmed',
+    candidate_slots: [{
+      start_time: new Date('2024-02-01T10:00:00'),
+      end_time: new Date('2024-02-01T11:00:00')
+    }],
+    confirmed_slot: {
+      start_time: new Date('2024-02-01T10:00:00'),
+      end_time: new Date('2024-02-01T11:00:00')
+    },
+    is_online: false,
+    location: '東京都渋谷区',
+    notes: '技術面接。事前課題の説明を準備',
+    created_at: new Date('2024-01-18'),
+    updated_at: new Date('2024-01-22'),
   },
   {
     id: '2',
-    companyId: '2',
-    companyName: '株式会社データソリューション',
+    company_id: '2',
+    company_name: '株式会社データソリューション',
     title: '会社説明会',
     type: 'info_session',
     status: 'confirmed',
-    candidateSlots: [{
-      startTime: new Date('2024-02-03T13:00:00'),
-      endTime: new Date('2024-02-03T15:00:00')
+    candidate_slots: [{
+      start_time: new Date('2024-02-03T13:00:00'),
+      end_time: new Date('2024-02-03T15:00:00')
     }],
-    confirmedSlot: {
-      startTime: new Date('2024-02-03T13:00:00'),
-      endTime: new Date('2024-02-03T15:00:00')
+    confirmed_slot: {
+      start_time: new Date('2024-02-03T13:00:00'),
+      end_time: new Date('2024-02-03T15:00:00')
     },
-    isOnline: true,
+    is_online: true,
     notes: 'Zoomリンクは後日送付',
-    createdAt: new Date('2024-01-18'),
-    updatedAt: new Date('2024-01-22'),
+    created_at: new Date('2024-01-18'),
+    updated_at: new Date('2024-01-22'),
   }
 ];
 
@@ -77,12 +63,12 @@ export const useJobHuntingData = () => {
   const [companies, setCompanies] = useState<Company[]>(mockCompanies);
   const [events, setEvents] = useState<Event[]>(mockEvents);
 
-  const addCompany = useCallback((company: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addCompany = useCallback((company: Omit<Company, 'id' | 'created_at' | 'updated_at'>) => {
     const newCompany: Company = {
       ...company,
       id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      created_at: new Date(),
+      updated_at: new Date(),
     };
     setCompanies(prev => [...prev, newCompany]);
     return newCompany;
@@ -91,22 +77,22 @@ export const useJobHuntingData = () => {
   const updateCompanyStage = useCallback((companyId: string, stage: SelectionStage) => {
     setCompanies(prev => prev.map(company => 
       company.id === companyId 
-        ? { ...company, currentStage: stage, updatedAt: new Date() }
+        ? { ...company, current_stage: stage, updated_at: new Date() }
         : company
     ));
   }, []);
 
   const deleteCompany = useCallback((companyId: string) => {
     setCompanies(prev => prev.filter(company => company.id !== companyId));
-    setEvents(prev => prev.filter(event => event.companyId !== companyId));
+    setEvents(prev => prev.filter(event => event.company_id !== companyId));
   }, []);
 
-  const addEvent = useCallback((event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addEvent = useCallback((event: Omit<Event, 'id' | 'created_at' | 'updated_at'>) => {
     const newEvent: Event = {
       ...event,
       id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      created_at: new Date(),
+      updated_at: new Date(),
     };
     setEvents(prev => [...prev, newEvent]);
     return newEvent;
@@ -115,15 +101,15 @@ export const useJobHuntingData = () => {
   const updateEventStatus = useCallback((eventId: string, status: EventStatus, confirmedSlot?: TimeSlot) => {
     setEvents(prev => prev.map(event => 
       event.id === eventId 
-        ? { ...event, status, confirmedSlot, updatedAt: new Date() }
+        ? { ...event, status, confirmedSlot, updated_at: new Date() }
         : event
     ));
   }, []);
 
-  const updateEvent = useCallback((eventId: string, eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const updateEvent = useCallback((eventId: string, eventData: Omit<Event, 'id' | 'created_at' | 'updated_at'>) => {
     setEvents(prev => prev.map(event => 
       event.id === eventId 
-        ? { ...eventData, id: eventId, createdAt: event.createdAt, updatedAt: new Date() }
+        ? { ...eventData, id: eventId, created_at: event.created_at, updated_at: new Date() }
         : event
     ));
   }, []);
@@ -136,12 +122,12 @@ export const useJobHuntingData = () => {
     const now = new Date();
     return events
       .filter(event => {
-        const eventTime = event.confirmedSlot?.startTime || event.candidateSlots[0]?.startTime;
+        const eventTime = event.confirmed_slot?.start_time || event.candidate_slots[0]?.start_time;
         return eventTime && eventTime >= now;
       })
       .sort((a, b) => {
-        const timeA = a.confirmedSlot?.startTime || a.candidateSlots[0]?.startTime;
-        const timeB = b.confirmedSlot?.startTime || b.candidateSlots[0]?.startTime;
+        const timeA = a.confirmed_slot?.start_time || a.candidate_slots[0]?.start_time;
+        const timeB = b.confirmed_slot?.start_time || b.candidate_slots[0]?.start_time;
         return (timeA?.getTime() || 0) - (timeB?.getTime() || 0);
       });
   }, [events]);
