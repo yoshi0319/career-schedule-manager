@@ -34,7 +34,8 @@ func main() {
 		if err != nil {
 			log.Printf("CRITICAL: Failed to connect to database: %v", err)
 			log.Printf("DATABASE_URL: %s", cfg.DatabaseURL)
-			log.Fatal("Database connection failed - stopping server")
+			log.Printf("Starting server without database connection for debugging...")
+			db = nil
 		} else {
 			// Auto-migrate tables
 			if err := database.Migrate(db); err != nil {
@@ -44,7 +45,8 @@ func main() {
 			}
 		}
 	} else {
-		log.Fatal("DATABASE_URL not set - cannot start server")
+		log.Printf("DATABASE_URL not set - starting without database")
+		db = nil
 	}
 
 	// Initialize Gin router
