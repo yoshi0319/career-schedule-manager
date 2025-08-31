@@ -77,14 +77,17 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
   const handleExportToGoogleCalendar = () => {
     const company = companies.find(c => c.id === event.company_id);
     if (company && event.confirmed_slot) {
-      console.log('=== Googleカレンダー登録デバッグ ===');
-      console.log('確定スロット:', event.confirmed_slot);
-      debugDateConversion(event.confirmed_slot.start_time);
-      debugDateConversion(event.confirmed_slot.end_time);
+      // 開発環境でのみデバッグログを表示
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_GOOGLE_CALENDAR === 'true') {
+        console.log('=== Googleカレンダー登録デバッグ ===');
+        console.log('確定スロット:', event.confirmed_slot);
+        debugDateConversion(event.confirmed_slot.start_time);
+        debugDateConversion(event.confirmed_slot.end_time);
+      }
       
       const success = exportToGoogleCalendar(event, company);
       if (success) {
-        console.log('Googleカレンダーに登録しました');
+        // 成功時は静かに処理
       } else {
         console.error('Googleカレンダーへの登録に失敗しました');
       }
