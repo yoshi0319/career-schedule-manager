@@ -91,7 +91,7 @@ const Index = () => {
   };
 
   const handleUpdateCompanyStage = (companyId: string, stage: SelectionStage) => {
-    updateCompanyMutation.mutate({ id: companyId, company: { currentStage: stage } });
+    updateCompanyMutation.mutate({ id: companyId, company: { current_stage: stage } });
   };
 
   const handleDeleteCompany = (companyId: string) => {

@@ -5,8 +5,8 @@ const BUFFER_MINUTES = 30;
 
 export function addBufferToTimeSlot(slot: TimeSlot): TimeSlot {
   return {
-    startTime: new Date(slot.startTime.getTime() - BUFFER_MINUTES * 60 * 1000),
-    endTime: new Date(slot.endTime.getTime() + BUFFER_MINUTES * 60 * 1000)
+    start_time: new Date(slot.start_time.getTime() - BUFFER_MINUTES * 60 * 1000),
+    end_time: new Date(slot.end_time.getTime() + BUFFER_MINUTES * 60 * 1000)
   };
 }
 
@@ -18,15 +18,15 @@ export function checkTimeSlotConflict(
   
   for (const event of existingEvents) {
     // Check against confirmed slots
-    if (event.confirmedSlot) {
-      const bufferedSlot = addBufferToTimeSlot(event.confirmedSlot);
+    if (event.confirmed_slot) {
+      const bufferedSlot = addBufferToTimeSlot(event.confirmed_slot);
       if (timeSlotsOverlap(newSlot, bufferedSlot)) {
         conflictingEvents.push(event);
       }
     }
     
     // Check against candidate slots
-    for (const candidateSlot of event.candidateSlots) {
+    for (const candidateSlot of event.candidate_slots) {
       const bufferedSlot = addBufferToTimeSlot(candidateSlot);
       if (timeSlotsOverlap(newSlot, bufferedSlot)) {
         conflictingEvents.push(event);
@@ -50,8 +50,8 @@ export function checkConfirmedEventConflict(
   
   for (const event of existingEvents) {
     // 確定済みのスロットのみをチェック
-    if (event.confirmedSlot) {
-      const bufferedSlot = addBufferToTimeSlot(event.confirmedSlot);
+    if (event.confirmed_slot) {
+      const bufferedSlot = addBufferToTimeSlot(event.confirmed_slot);
       if (timeSlotsOverlap(newSlot, bufferedSlot)) {
         conflictingEvents.push(event);
       }
@@ -65,15 +65,15 @@ export function checkConfirmedEventConflict(
 }
 
 function timeSlotsOverlap(slot1: TimeSlot, slot2: TimeSlot): boolean {
-  return slot1.startTime < slot2.endTime && slot1.endTime > slot2.startTime;
+  return slot1.start_time < slot2.end_time && slot1.end_time > slot2.start_time;
 }
 
 export function formatTimeSlot(slot: TimeSlot): string {
-  const startTime = slot.startTime.toLocaleTimeString('ja-JP', {
+  const startTime = slot.start_time.toLocaleTimeString('ja-JP', {
     hour: '2-digit',
     minute: '2-digit'
   });
-  const endTime = slot.endTime.toLocaleTimeString('ja-JP', {
+  const endTime = slot.end_time.toLocaleTimeString('ja-JP', {
     hour: '2-digit',
     minute: '2-digit'
   });
@@ -82,7 +82,7 @@ export function formatTimeSlot(slot: TimeSlot): string {
 }
 
 export function formatTimeSlotWithDate(slot: TimeSlot): string {
-  const date = slot.startTime.toLocaleDateString('ja-JP', {
+  const date = slot.start_time.toLocaleDateString('ja-JP', {
     month: 'numeric',
     day: 'numeric',
     weekday: 'short'

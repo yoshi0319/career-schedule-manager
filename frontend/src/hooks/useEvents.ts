@@ -10,7 +10,25 @@ export const useEvents = () => {
   
   return useQuery({
     queryKey: ['events'],
-    queryFn: () => apiClient.getEvents(),
+    queryFn: async () => {
+      const events = await apiClient.getEvents()
+      // JSONBフィールドを適切に変換
+      return events.map(event => ({
+        ...event,
+        candidate_slots: Array.isArray(event.candidate_slots) 
+          ? event.candidate_slots.map((slot: any) => ({
+              start_time: new Date(slot.start_time),
+              end_time: new Date(slot.end_time)
+            }))
+          : [],
+        confirmed_slot: event.confirmed_slot 
+          ? {
+              start_time: new Date(event.confirmed_slot.start_time),
+              end_time: new Date(event.confirmed_slot.end_time)
+            }
+          : undefined
+      }))
+    },
     staleTime: 5 * 60 * 1000, // 5分間はキャッシュを使用
     enabled: !!user, // ユーザーがログインしている場合のみ実行
   })
@@ -22,7 +40,7 @@ export const useCreateEvent = () => {
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: (event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) =>
+    mutationFn: (event: Omit<Event, 'id' | 'created_at' | 'updated_at'>) =>
       apiClient.createEvent(event),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] })
