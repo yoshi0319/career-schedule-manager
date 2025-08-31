@@ -70,12 +70,12 @@ const Index = () => {
     const now = new Date();
     return events
       .filter(event => {
-        const eventTime = event.confirmedSlot?.startTime || event.candidateSlots[0]?.startTime;
+        const eventTime = event.confirmed_slot?.start_time || event.candidate_slots[0]?.start_time;
         return eventTime && new Date(eventTime) >= now;
       })
       .sort((a, b) => {
-        const timeA = new Date(a.confirmedSlot?.startTime || a.candidateSlots[0]?.startTime || '');
-        const timeB = new Date(b.confirmedSlot?.startTime || b.candidateSlots[0]?.startTime || '');
+        const timeA = new Date(a.confirmed_slot?.start_time || a.candidate_slots[0]?.start_time || '');
+        const timeB = new Date(b.confirmed_slot?.start_time || b.candidate_slots[0]?.start_time || '');
         return timeA.getTime() - timeB.getTime();
       })
       .slice(0, 5);
@@ -112,22 +112,22 @@ const Index = () => {
     }
   };
 
-  const handleAddCompany = (companyData: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleAddCompany = (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at'>) => {
     createCompanyMutation.mutate(companyData);
   };
 
-  const handleAddEvent = (eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleAddEvent = (eventData: Omit<Event, 'id' | 'created_at' | 'updated_at'>) => {
     createEventMutation.mutate(eventData);
   };
 
-  const handleUpdateEvent = (eventId: string, eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleUpdateEvent = (eventId: string, eventData: Omit<Event, 'id' | 'created_at' | 'updated_at'>) => {
     updateEventMutation.mutate({ id: eventId, event: eventData });
     setEditingEvent(null);
   };
 
-  const handleUpdateEventStatus = (eventId: string, status: EventStatus, confirmedSlot?: any) => {
-    if (confirmedSlot) {
-      confirmEventMutation.mutate({ id: eventId, confirmedSlot, status });
+  const handleUpdateEventStatus = (eventId: string, status: EventStatus, confirmed_slot?: any) => {
+    if (confirmed_slot) {
+      confirmEventMutation.mutate({ id: eventId, confirmedSlot: confirmed_slot, status });
     } else {
       updateEventMutation.mutate({ id: eventId, event: { status } });
     }

@@ -56,7 +56,7 @@ export const CompanyDetailModal = ({
   onDeleteCompany 
 }: CompanyDetailModalProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [currentStage, setCurrentStage] = useState<SelectionStage>(company.currentStage);
+  const [currentStage, setCurrentStage] = useState<SelectionStage>(company.current_stage);
   const [notes, setNotes] = useState(company.notes || '');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -65,7 +65,7 @@ export const CompanyDetailModal = ({
   const candidateEvents = companyEvents.filter(event => event.status === 'candidate');
 
   const handleSave = () => {
-    if (currentStage !== company.currentStage) {
+    if (currentStage !== company.current_stage) {
       onUpdateStage(company.id, currentStage);
     }
     setIsEditing(false);

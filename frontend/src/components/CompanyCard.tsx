@@ -65,11 +65,8 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
             <CardTitle className="text-lg">{company.name}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className={cn(
-              stageColors[company.currentStage],
-              "transition-colors duration-200 cursor-default"
-            )}>
-              {stageLabels[company.currentStage]}
+            <Badge className={cn(stageColors[company.current_stage])}>
+              {stageLabels[company.current_stage]}
             </Badge>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

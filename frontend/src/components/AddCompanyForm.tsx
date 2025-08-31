@@ -12,7 +12,7 @@ interface AddCompanyFormProps {
     name: string;
     industry: string;
     position: string;
-    currentStage: SelectionStage;
+    current_stage: SelectionStage;
   }) => void;
 }
 
@@ -46,7 +46,7 @@ export const AddCompanyForm = ({ onAddCompany }: AddCompanyFormProps) => {
     name: '',
     industry: '',
     position: '',
-    currentStage: 'document_review' as SelectionStage
+    current_stage: 'document_review' as SelectionStage
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -58,7 +58,7 @@ export const AddCompanyForm = ({ onAddCompany }: AddCompanyFormProps) => {
       name: '',
       industry: '',
       position: '',
-      currentStage: 'document_review'
+      current_stage: 'document_review'
     });
     setOpen(false);
   };
@@ -120,8 +120,8 @@ export const AddCompanyForm = ({ onAddCompany }: AddCompanyFormProps) => {
           <div className="space-y-2">
             <Label htmlFor="stage">現在のステージ</Label>
             <Select
-              value={formData.currentStage}
-              onValueChange={(value: SelectionStage) => setFormData(prev => ({ ...prev, currentStage: value }))}
+              value={formData.current_stage}
+              onValueChange={(value: SelectionStage) => setFormData(prev => ({ ...prev, current_stage: value }))}
             >
               <SelectTrigger>
                 <SelectValue />
