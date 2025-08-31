@@ -43,7 +43,7 @@ const stageLabels: Record<SelectionStage, string> = {
 };
 
 const stageColors: Record<SelectionStage, string> = {
-  document_review: 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+  document_review: 'bg-slate-200 text-slate-800 hover:bg-slate-300',
   first_interview: 'bg-blue-100 text-blue-700 hover:bg-blue-200',
   second_interview: 'bg-orange-100 text-orange-700 hover:bg-orange-200',
   final_interview: 'bg-purple-100 text-purple-700 hover:bg-purple-200',
