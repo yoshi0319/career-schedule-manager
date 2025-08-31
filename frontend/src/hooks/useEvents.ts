@@ -11,7 +11,15 @@ export const useEvents = () => {
   return useQuery({
     queryKey: ['events'],
     queryFn: async () => {
+      const startTime = performance.now()
       const events = await apiClient.getEvents()
+      const endTime = performance.now()
+      
+      // パフォーマンス監視（開発環境のみ、詳細ログは無効化）
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_PERFORMANCE === 'true') {
+        console.log(`Events fetch time: ${(endTime - startTime).toFixed(2)}ms`)
+      }
+      
       // JSONBフィールドを適切に変換
       return events.map(event => ({
         ...event,
@@ -30,6 +38,9 @@ export const useEvents = () => {
       }))
     },
     staleTime: 5 * 60 * 1000, // 5分間はキャッシュを使用
+    gcTime: 10 * 60 * 1000, // 10分間メモリに保持
+    refetchOnWindowFocus: false, // ウィンドウフォーカス時の再取得を無効化
+    refetchOnMount: false, // コンポーネントマウント時の再取得を無効化
     enabled: !!user, // ユーザーがログインしている場合のみ実行
   })
 }

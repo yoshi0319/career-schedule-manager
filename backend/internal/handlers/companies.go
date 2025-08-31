@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"net/http"
 	"html"
+	"net/http"
 	"strings"
 
 	"career-schedule-api/internal/models"
@@ -22,7 +22,11 @@ func GetCompanies(db *gorm.DB) gin.HandlerFunc {
 		userID := c.GetString("user_id")
 
 		var companies []models.Company
-		if err := db.Where("user_id = ?", userID).Find(&companies).Error; err != nil {
+		// クエリ最適化: 必要なフィールドのみ選択、インデックス活用
+		if err := db.Select("id, user_id, name, industry, position, current_stage, notes, created_at, updated_at").
+			Where("user_id = ?", userID).
+			Order("updated_at DESC"). // 最新更新順でソート
+			Find(&companies).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch companies"})
 			return
 		}

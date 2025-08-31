@@ -57,7 +57,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const handleSignOut = async () => {
-    return signOut()
+    try {
+      // ログアウト実行
+      const { error } = await signOut()
+      
+      if (error && import.meta.env.DEV) {
+        console.warn('SignOut error:', error)
+      }
+      
+      // ローカル状態をクリア（エラーが発生しても実行）
+      setUser(null)
+      setLoading(false)
+      
+      // ローカルストレージの完全クリア
+      localStorage.clear()
+      sessionStorage.clear()
+      
+      // ページをリロードして完全にクリーンな状態にする
+      window.location.reload()
+      
+      return { error: null }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('SignOut failed:', error)
+      }
+      
+      // エラーが発生してもローカル状態をクリア
+      setUser(null)
+      setLoading(false)
+      localStorage.clear()
+      sessionStorage.clear()
+      window.location.reload()
+      
+      return { error }
+    }
   }
 
   const value = {
