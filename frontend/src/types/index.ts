@@ -7,35 +7,35 @@ export interface Company {
   name: string;
   industry: string;
   position: string;
-  currentStage: SelectionStage;
+  current_stage: SelectionStage;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface TimeSlot {
-  startTime: Date;
-  endTime: Date;
+  start_time: Date;
+  end_time: Date;
 }
 
 export interface Event {
   id: string;
-  companyId: string;
-  companyName: string;
+  company_id: string;
+  company_name: string;
   title: string;
   type: EventType;
   status: EventStatus;
-  candidateSlots: TimeSlot[];
-  confirmedSlot?: TimeSlot;
+  candidate_slots: TimeSlot[];
+  confirmed_slot?: TimeSlot;
   location?: string;
-  isOnline: boolean;
+  is_online: boolean;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface ConflictCheck {
-  hasConflict: boolean;
-  conflictingEvents: Event[];
-  suggestedAlternatives?: Date[];
+  has_conflict: boolean;
+  conflicting_events: Event[];
+  suggested_alternatives?: Date[];
 }
