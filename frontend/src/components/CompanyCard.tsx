@@ -52,7 +52,7 @@ const stageColors: Record<SelectionStage, string> = {
 };
 
 export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onDeleteCompany }: CompanyCardProps) => {
-  const companyEvents = events.filter(event => event.companyId === company.id);
+  const companyEvents = events.filter(event => event.company_id === company.id);
   const confirmedEvents = companyEvents.filter(event => event.status === 'confirmed');
   const eventCount = companyEvents.length;
 
@@ -90,10 +90,10 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
                       <DropdownMenuItem
                         key={stage}
                         onClick={() => onUpdateStage(company.id, stage)}
-                        className={company.currentStage === stage ? 'bg-accent' : ''}
+                        className={company.current_stage === stage ? 'bg-accent' : ''}
                       >
                         {stageLabels[stage]}
-                        {company.currentStage === stage && ' (現在)'}
+                        {company.current_stage === stage && ' (現在)'}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuSubContent>
@@ -129,7 +129,7 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
                 <div className="flex-1">
                   <div className="text-sm font-medium">{event.title}</div>
                   <div className="text-xs text-muted-foreground">
-                    {event.confirmedSlot && formatTimeSlotWithDate(event.confirmedSlot)}
+                    {event.confirmed_slot && formatTimeSlotWithDate(event.confirmed_slot)}
                   </div>
                 </div>
               </div>

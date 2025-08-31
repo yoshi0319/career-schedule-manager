@@ -76,7 +76,7 @@ class ApiClient {
     return this.request<Company[]>('/api/v1/companies')
   }
 
-  async createCompany(company: Omit<Company, 'id' | 'createdAt' | 'updatedAt'>): Promise<Company> {
+  async createCompany(company: Omit<Company, 'id' | 'created_at' | 'updated_at'>): Promise<Company> {
     return this.request<Company>('/api/v1/companies', {
       method: 'POST',
       body: JSON.stringify(company),
@@ -101,7 +101,7 @@ class ApiClient {
     return this.request<Event[]>('/api/v1/events')
   }
 
-  async createEvent(event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>): Promise<Event> {
+  async createEvent(event: Omit<Event, 'id' | 'created_at' | 'updated_at'>): Promise<Event> {
     return this.request<Event>('/api/v1/events', {
       method: 'POST',
       body: JSON.stringify(event),
