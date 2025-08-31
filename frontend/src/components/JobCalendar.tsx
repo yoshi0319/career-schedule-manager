@@ -347,8 +347,8 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
           </CardHeader>
           <CardContent>
             {selectedDateEvents.length === 0 ? (
-              <div className="text-center py-6 sm:py-8 text-muted-foreground">
-                <CalendarIcon className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+              <div className="text-center py-4 sm:py-6 text-muted-foreground max-w-sm mx-auto">
+                <CalendarIcon className="h-6 w-6 sm:h-10 sm:w-10 mx-auto mb-2 sm:mb-3 opacity-50" />
                 <p className="text-sm sm:text-base">この日に予定はありません</p>
               </div>
             ) : (
