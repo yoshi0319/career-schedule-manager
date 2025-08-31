@@ -12,8 +12,8 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5分間はキャッシュを使用
       gcTime: 10 * 60 * 1000, // 10分間メモリに保持
-      refetchOnWindowFocus: false, // ウィンドウフォーカス時の再取得を無効化
-      refetchOnMount: false, // コンポーネントマウント時の再取得を無効化
+      refetchOnWindowFocus: true, // ウィンドウフォーカス時の再取得を有効化
+      refetchOnMount: true, // コンポーネントマウント時の再取得を有効化
       retry: 1, // リトライ回数を1回に制限
       retryDelay: 1000, // リトライ間隔を1秒に設定
     },
