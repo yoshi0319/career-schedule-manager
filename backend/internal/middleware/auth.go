@@ -35,6 +35,13 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 
 		tokenString := tokenParts[1]
 
+		// Check if JWT secret is configured
+		if jwtSecret == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "JWT secret not configured on server"})
+			c.Abort()
+			return
+		}
+
 		// Parse and validate the JWT token
 		userID, err := validateSupabaseJWT(tokenString, jwtSecret)
 		if err != nil {
