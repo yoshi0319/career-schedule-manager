@@ -60,7 +60,7 @@ export const CompanyDetailModal = ({
   const [notes, setNotes] = useState(company.notes || '');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const companyEvents = events.filter(event => event.companyId === company.id);
+  const companyEvents = events.filter(event => event.company_id === company.id);
   const confirmedEvents = companyEvents.filter(event => event.status === 'confirmed');
   const candidateEvents = companyEvents.filter(event => event.status === 'candidate');
 
@@ -167,7 +167,7 @@ export const CompanyDetailModal = ({
                       <div className="flex-1">
                         <div className="font-medium">{event.title}</div>
                         <div className="text-sm text-muted-foreground">
-                          {event.confirmedSlot && formatTimeSlotWithDate(event.confirmedSlot)}
+                          {event.confirmed_slot && formatTimeSlotWithDate(event.confirmed_slot)}
                         </div>
                       </div>
                     </div>
@@ -183,7 +183,7 @@ export const CompanyDetailModal = ({
                       <div className="flex-1">
                         <div className="font-medium">{event.title}</div>
                         <div className="text-sm text-muted-foreground">
-                          {event.candidateSlots.length}件の候補日
+                          {event.candidate_slots.length}件の候補日
                         </div>
                       </div>
                     </div>

@@ -29,13 +29,13 @@ export const EventConfirmationModal = ({
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [conflictError, setConflictError] = useState<string>('');
 
-  const selectedSlot = event.candidateSlots[selectedSlotIndex];
+  const selectedSlot = event.candidate_slots[selectedSlotIndex];
   
   // 選択された候補日の詳細時間オプションを生成（10分刻み）
   const generateTimeOptions = (slot: TimeSlot): string[] => {
     const options: string[] = [];
-    const startTime = new Date(slot.startTime);
-    const endTime = new Date(slot.endTime);
+    const startTime = new Date(slot.start_time);
+    const endTime = new Date(slot.end_time);
     
     let currentTime = new Date(startTime);
     while (currentTime <= endTime) {
@@ -53,15 +53,15 @@ export const EventConfirmationModal = ({
     if (selectedSlot && selectedTime) {
       // 選択された時間からTimeSlotを作成
       const [hours, minutes] = selectedTime.split(':').map(Number);
-      const confirmedStartTime = new Date(selectedSlot.startTime);
+      const confirmedStartTime = new Date(selectedSlot.start_time);
       confirmedStartTime.setHours(hours, minutes, 0, 0);
       
       const confirmedEndTime = new Date(confirmedStartTime);
       confirmedEndTime.setMinutes(confirmedEndTime.getMinutes() + 30); // 30分の面接時間
       
       const confirmedSlot: TimeSlot = {
-        startTime: confirmedStartTime,
-        endTime: confirmedEndTime
+        start_time: confirmedStartTime,
+        end_time: confirmedEndTime
       };
 
       // 確定時の重複チェック（確定済みイベントのみ）
@@ -70,7 +70,7 @@ export const EventConfirmationModal = ({
       
       if (conflictResult.hasConflict) {
         const conflictingEvent = conflictResult.conflictingEvents[0];
-        setConflictError(`この時間は「${conflictingEvent.companyName}」の予定と重複しています（前後30分を含む）。`);
+        setConflictError(`この時間は「${conflictingEvent.company_name}」の予定と重複しています（前後30分を含む）。`);
         return;
       }
       
@@ -108,7 +108,7 @@ export const EventConfirmationModal = ({
         
         <div className="space-y-6">
           <div className="text-sm text-muted-foreground">
-            {event.companyName}
+            {event.company_name}
           </div>
           
           {/* 候補日選択 */}
@@ -122,7 +122,7 @@ export const EventConfirmationModal = ({
               onValueChange={(value) => handleSlotChange(parseInt(value))}
               className="mt-3"
             >
-              {event.candidateSlots.map((slot, index) => (
+              {event.candidate_slots.map((slot, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   <RadioGroupItem 
                     value={index.toString()} 
@@ -162,7 +162,7 @@ export const EventConfirmationModal = ({
               </div>
               {selectedTime && (
                 <div className="mt-2 text-sm text-muted-foreground">
-                  選択時間: {selectedSlot.startTime.toLocaleDateString('ja-JP', {
+                  選択時間: {selectedSlot.start_time.toLocaleDateString('ja-JP', {
                     month: 'numeric',
                     day: 'numeric',
                     weekday: 'short'
