@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"net/http"
 	"html"
+	"net/http"
 	"strings"
 
 	"career-schedule-api/internal/models"
@@ -22,7 +22,11 @@ func GetCompanies(db *gorm.DB) gin.HandlerFunc {
 		userID := c.GetString("user_id")
 
 		var companies []models.Company
-		if err := db.Where("user_id = ?", userID).Find(&companies).Error; err != nil {
+		// クエリ最適化: 必要なフィールドのみ選択、インデックス活用
+		if err := db.Select("id, user_id, name, industry, position, current_stage, notes, created_at, updated_at").
+			Where("user_id = ?", userID).
+			Order("updated_at DESC"). // 最新更新順でソート
+			Find(&companies).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch companies"})
 			return
 		}
@@ -94,8 +98,9 @@ func UpdateCompany(db *gorm.DB) gin.HandlerFunc {
 		userID := c.GetString("user_id")
 		companyID := c.Param("id")
 
-		var company models.Company
-		if err := db.Where("id = ? AND user_id = ?", companyID, userID).First(&company).Error; err != nil {
+		// 既存の企業データを取得
+		var existingCompany models.Company
+		if err := db.Where("id = ? AND user_id = ?", companyID, userID).First(&existingCompany).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Company not found"})
 				return
@@ -104,17 +109,51 @@ func UpdateCompany(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := c.ShouldBindJSON(&company); err != nil {
+		// 更新用のデータ構造
+		var updateData struct {
+			Name         *string `json:"name"`
+			Industry     *string `json:"industry"`
+			Position     *string `json:"position"`
+			CurrentStage *string `json:"current_stage"`
+			Notes        *string `json:"notes"`
+		}
+
+		if err := c.ShouldBindJSON(&updateData); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		if err := db.Save(&company).Error; err != nil {
+		// 部分更新の処理
+		if updateData.Name != nil {
+			existingCompany.Name = html.EscapeString(strings.TrimSpace(*updateData.Name))
+		}
+		if updateData.Industry != nil {
+			existingCompany.Industry = html.EscapeString(strings.TrimSpace(*updateData.Industry))
+		}
+		if updateData.Position != nil {
+			existingCompany.Position = html.EscapeString(strings.TrimSpace(*updateData.Position))
+		}
+		if updateData.CurrentStage != nil {
+			existingCompany.CurrentStage = *updateData.CurrentStage
+		}
+		if updateData.Notes != nil {
+			existingCompany.Notes = html.EscapeString(strings.TrimSpace(*updateData.Notes))
+		}
+
+		// バリデーション
+		validate := validator.New()
+		if err := validate.Struct(&existingCompany); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed: " + err.Error()})
+			return
+		}
+
+		// データベースを更新
+		if err := db.Save(&existingCompany).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update company"})
 			return
 		}
 
-		c.JSON(http.StatusOK, company)
+		c.JSON(http.StatusOK, existingCompany)
 	}
 }
 

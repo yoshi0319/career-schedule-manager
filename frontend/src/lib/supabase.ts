@@ -8,12 +8,6 @@ const getSupabaseClient = () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-    // 開発環境のみでログ表示
-    if (import.meta.env.DEV && import.meta.env.MODE === 'development') {
-      console.log('Supabase URL:', supabaseUrl)
-      console.log('Supabase Key exists:', !!supabaseAnonKey)
-    }
-
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('Missing Supabase environment variables:', {
         hasUrl: !!supabaseUrl,
@@ -22,10 +16,20 @@ const getSupabaseClient = () => {
       throw new Error('Missing Supabase environment variables')
     }
 
-    supabase = createClient(supabaseUrl, supabaseAnonKey)
-    if (import.meta.env.DEV && import.meta.env.MODE === 'development') {
-      console.log('Supabase client created successfully')
-    }
+    supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        debug: false, // デバッグログを無効化
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'career-schedule-manager'
+        }
+      }
+    })
   }
   return supabase
 }
@@ -51,8 +55,44 @@ export const signUp = (email: string, password: string) => {
 }
 
 // ログアウト
-export const signOut = () => {
-  return getSupabaseClient().auth.signOut()
+export const signOut = async () => {
+  try {
+    // まず現在のセッションを取得
+    const { data: { session } } = await getSupabaseClient().auth.getSession()
+    
+    if (session) {
+      // セッションが存在する場合はログアウトを試行
+      const { error } = await getSupabaseClient().auth.signOut()
+      if (error) {
+        // エラー時のみログ出力
+        if (import.meta.env.DEV) {
+          console.warn('Supabase logout failed:', error.message)
+        }
+        // エラーが発生してもローカル状態をクリア
+        await getSupabaseClient().auth.signOut({ scope: 'local' })
+      }
+    }
+    
+    // ローカルストレージのクリア
+    localStorage.removeItem('supabase.auth.token')
+    
+    return { error: null }
+  } catch (error) {
+    // エラー時のみログ出力
+    if (import.meta.env.DEV) {
+      console.error('Logout error:', error)
+    }
+    // エラーが発生してもローカル状態をクリア
+    try {
+      await getSupabaseClient().auth.signOut({ scope: 'local' })
+    } catch (localError) {
+      if (import.meta.env.DEV) {
+        console.warn('Local logout also failed:', localError)
+      }
+    }
+    
+    return { error }
+  }
 }
 
 // Googleでサインイン

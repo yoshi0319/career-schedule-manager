@@ -17,13 +17,16 @@ import {
 
 // 開始時間のみを表示する関数
 const formatStartTimeWithDate = (slot: TimeSlot): string => {
-  const date = slot.start_time.toLocaleDateString('ja-JP', {
+  // 日時データがDateオブジェクトでない場合は変換
+  const startTime = slot.start_time instanceof Date ? slot.start_time : new Date(slot.start_time)
+  
+  const date = startTime.toLocaleDateString('ja-JP', {
     month: 'short',
     day: 'numeric',
     weekday: 'short'
   });
   
-  const time = slot.start_time.toLocaleTimeString('ja-JP', {
+  const time = startTime.toLocaleTimeString('ja-JP', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false
@@ -77,14 +80,26 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
   const handleExportToGoogleCalendar = () => {
     const company = companies.find(c => c.id === event.company_id);
     if (company && event.confirmed_slot) {
-      console.log('=== Googleカレンダー登録デバッグ ===');
-      console.log('確定スロット:', event.confirmed_slot);
-      debugDateConversion(event.confirmed_slot.start_time);
-      debugDateConversion(event.confirmed_slot.end_time);
+      // 開発環境でのみデバッグログを表示
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_GOOGLE_CALENDAR === 'true') {
+        console.log('=== Googleカレンダー登録デバッグ ===');
+        console.log('確定スロット:', event.confirmed_slot);
+        
+        // 日時データの型チェック
+        const startTime = event.confirmed_slot.start_time instanceof Date 
+          ? event.confirmed_slot.start_time 
+          : new Date(event.confirmed_slot.start_time);
+        const endTime = event.confirmed_slot.end_time instanceof Date 
+          ? event.confirmed_slot.end_time 
+          : new Date(event.confirmed_slot.end_time);
+        
+        debugDateConversion(startTime);
+        debugDateConversion(endTime);
+      }
       
       const success = exportToGoogleCalendar(event, company);
       if (success) {
-        console.log('Googleカレンダーに登録しました');
+        // 成功時は静かに処理
       } else {
         console.error('Googleカレンダーへの登録に失敗しました');
       }

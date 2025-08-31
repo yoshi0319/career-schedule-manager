@@ -60,8 +60,12 @@ CREATE TABLE events (
 
 -- インデックス作成
 CREATE INDEX companies_user_id_idx ON companies(user_id);
+CREATE INDEX companies_updated_at_idx ON companies(updated_at DESC);
 CREATE INDEX events_user_id_idx ON events(user_id);
 CREATE INDEX events_company_id_idx ON events(company_id);
+CREATE INDEX events_created_at_idx ON events(created_at DESC);
+CREATE INDEX events_status_idx ON events(status);
+CREATE INDEX events_user_id_status_idx ON events(user_id, status);
 
 -- Row Level Security (RLS) 有効化
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;

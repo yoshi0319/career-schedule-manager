@@ -7,7 +7,22 @@ import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5分間はキャッシュを使用
+      gcTime: 10 * 60 * 1000, // 10分間メモリに保持
+      refetchOnWindowFocus: true, // ウィンドウフォーカス時の再取得を有効化
+      refetchOnMount: true, // コンポーネントマウント時の再取得を有効化
+      retry: 1, // リトライ回数を1回に制限
+      retryDelay: 1000, // リトライ間隔を1秒に設定
+    },
+    mutations: {
+      retry: 1, // ミューテーションのリトライ回数を1回に制限
+      retryDelay: 1000, // リトライ間隔を1秒に設定
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -15,7 +30,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<Index />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
