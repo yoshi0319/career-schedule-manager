@@ -26,12 +26,15 @@ func main() {
 
 	// Initialize database
 	var db *gorm.DB
+	log.Printf("DATABASE_URL configured: %t", cfg.DatabaseURL != "")
 	if cfg.DatabaseURL != "" {
+		log.Printf("Attempting to connect to database...")
 		var err error
 		db, err = database.New(cfg.DatabaseURL)
 		if err != nil {
-			log.Printf("Warning: Failed to connect to database: %v", err)
-			log.Println("Running without database connection...")
+			log.Printf("CRITICAL: Failed to connect to database: %v", err)
+			log.Printf("DATABASE_URL: %s", cfg.DatabaseURL)
+			log.Fatal("Database connection failed - stopping server")
 		} else {
 			// Auto-migrate tables
 			if err := database.Migrate(db); err != nil {
@@ -41,7 +44,7 @@ func main() {
 			}
 		}
 	} else {
-		log.Println("DATABASE_URL not set, running without database...")
+		log.Fatal("DATABASE_URL not set - cannot start server")
 	}
 
 	// Initialize Gin router
