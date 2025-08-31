@@ -8,8 +8,8 @@ const getSupabaseClient = () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-    // 本番環境でのログ制限
-    if (import.meta.env.DEV) {
+    // 開発環境のみでログ表示
+    if (import.meta.env.DEV && import.meta.env.MODE === 'development') {
       console.log('Supabase URL:', supabaseUrl)
       console.log('Supabase Key exists:', !!supabaseAnonKey)
     }
@@ -23,7 +23,7 @@ const getSupabaseClient = () => {
     }
 
     supabase = createClient(supabaseUrl, supabaseAnonKey)
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && import.meta.env.MODE === 'development') {
       console.log('Supabase client created successfully')
     }
   }
