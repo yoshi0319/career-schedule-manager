@@ -9,9 +9,12 @@ import (
 	"career-schedule-api/internal/handlers"
 	"career-schedule-api/internal/middleware"
 
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 )
 
@@ -70,6 +73,17 @@ func main() {
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	corsConfig.AllowCredentials = true
 	r.Use(cors.New(corsConfig))
+	
+	// Rate limiting middleware
+	limiter := rate.NewLimiter(rate.Every(time.Minute), 100) // 100 requests per minute
+	r.Use(func(c *gin.Context) {
+		if !limiter.Allow() {
+			c.JSON(429, gin.H{"error": "Rate limit exceeded"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	})
 	
 	// Security headers
 	r.Use(func(c *gin.Context) {
