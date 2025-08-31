@@ -22,6 +22,9 @@ cp env.example .env
 
 # 開発サーバー起動
 go run cmd/server/main.go
+
+# または開発用スクリプトを使用
+./scripts/dev.sh start
 ```
 
 ## 🔧 環境変数
@@ -171,8 +174,11 @@ backend/
 
 ### ローカル開発
 ```bash
-# ホットリロード (Air使用時)
-air
+# 開発用スクリプト（推奨）
+./scripts/dev.sh start    # サーバー起動
+./scripts/dev.sh stop     # サーバー停止
+./scripts/dev.sh restart  # サーバー再起動
+./scripts/dev.sh status   # サーバー状態確認
 
 # 通常起動
 go run cmd/server/main.go

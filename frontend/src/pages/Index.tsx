@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,47 @@ import { CompanyDetailModal } from '@/components/CompanyDetailModal';
 import { JobCalendar } from '@/components/JobCalendar';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
 import { Company, SelectionStage, Event, EventStatus } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// スケルトンローディングコンポーネント
+const LoadingSkeleton = () => (
+  <div className="min-h-screen p-4 space-y-6">
+    {/* ヘッダースケルトン */}
+    <div className="flex justify-between items-center">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-10 w-32" />
+    </div>
+    
+    {/* 統計カードスケルトン */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {[1, 2, 3].map((i) => (
+        <Card key={i}>
+          <CardHeader className="pb-2">
+            <Skeleton className="h-4 w-24" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-16" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+    
+    {/* タブスケルトン */}
+    <Tabs defaultValue="companies" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </TabsList>
+      
+      <TabsContent value="companies" className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-24 w-full" />
+        ))}
+      </TabsContent>
+    </Tabs>
+  </div>
+);
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
@@ -37,34 +78,6 @@ const Index = () => {
   const [showCompanyDetail, setShowCompanyDetail] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
-  // 認証チェック（フック後に実行）
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-          <p className="mt-4 text-gray-600">読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthForm />;
-  }
-
-  // データローディング状態
-  if (companiesLoading || eventsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-          <p className="mt-4 text-gray-600">データを読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
-
   // 今後の予定を取得（ローカル計算）
   const getUpcomingEvents = () => {
     const now = new Date();
@@ -81,9 +94,24 @@ const Index = () => {
       .slice(0, 5);
   };
 
-  const upcomingEvents = getUpcomingEvents();
-  const confirmedEventsCount = events.filter(e => e.status === 'confirmed').length;
-  const candidateEventsCount = events.filter(e => e.status === 'candidate').length;
+  // 統計データをメモ化して再計算を防ぐ（フック順序を維持）
+  const upcomingEvents = useMemo(() => getUpcomingEvents(), [events]);
+  const confirmedEventsCount = useMemo(() => events.filter(e => e.status === 'confirmed').length, [events]);
+  const candidateEventsCount = useMemo(() => events.filter(e => e.status === 'candidate').length, [events]);
+
+  // 認証チェック（フック後に実行）
+  if (loading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (!user) {
+    return <AuthForm />;
+  }
+
+  // データローディング状態（スケルトンローディングを表示）
+  if (companiesLoading || eventsLoading) {
+    return <LoadingSkeleton />;
+  }
 
   const handleViewCompanyDetails = (company: Company) => {
     setSelectedCompany(company);
@@ -137,21 +165,88 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">就活ダッシュボード</h1>
-              <p className="text-muted-foreground mt-1">あなたの就活を効率的に管理</p>
-              <p className="text-sm text-muted-foreground mt-1">
+        <div className="container mx-auto px-4 py-4 sm:py-6">
+          {/* スマホ用レイアウト */}
+          <div className="block sm:hidden relative">
+            {/* ログアウトボタン - 右上に固定（スマホのみ） */}
+            <div className="absolute top-0 right-0 z-10">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await signOut()
+                  } catch (error) {
+                    if (import.meta.env.DEV) {
+                      console.error('Logout failed:', error)
+                    }
+                    // エラーが発生しても強制的にログアウト状態にする
+                    window.location.reload()
+                  }
+                }}
+                disabled={false}
+                className="h-8 px-2"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* メインコンテンツ（スマホ） */}
+            <div className="flex flex-col space-y-4">
+              {/* タイトル部分 */}
+              <div className="flex-1 min-w-0 pr-20">
+                <h1 className="text-2xl font-bold text-foreground leading-tight">
+                  就活ダッシュボード
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  あなたの就活を効率的に管理
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  ようこそ、{user.email} さん
+                </p>
+              </div>
+              
+              {/* 企業を追加ボタン - 左下に配置（スマホ） */}
+              <div className="flex justify-start">
+                <AddCompanyForm onAddCompany={handleAddCompany} />
+              </div>
+            </div>
+          </div>
+          
+          {/* PC用レイアウト */}
+          <div className="hidden sm:flex items-center justify-between">
+            {/* タイトル部分 */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl font-bold text-foreground leading-tight">
+                就活ダッシュボード
+              </h1>
+              <p className="text-base text-muted-foreground mt-1 leading-relaxed">
+                あなたの就活を効率的に管理
+              </p>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                 ようこそ、{user.email} さん
               </p>
             </div>
+            
+            {/* ボタン部分 - 横並び（PC） */}
             <div className="flex items-center gap-4">
               <AddCompanyForm onAddCompany={handleAddCompany} />
               <Button
                 variant="outline"
                 size="sm"
-                onClick={signOut}
+                onClick={async () => {
+                  try {
+                    await signOut()
+                  } catch (error) {
+                    if (import.meta.env.DEV) {
+                      console.error('Logout failed:', error)
+                    }
+                    // エラーが発生しても強制的にログアウト状態にする
+                    window.location.reload()
+                  }
+                }}
+                disabled={false}
+                className="h-9 px-3"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 ログアウト
@@ -163,7 +258,37 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* スマホ用：横型コンパクト表示 */}
+        <div className="block sm:hidden mb-4">
+          <div className="flex gap-2">
+            <div className="flex-1 bg-card border border-border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">総企業数</span>
+                <Building2 className="h-3 w-3 text-muted-foreground" />
+              </div>
+              <div className="text-lg font-bold">{companies.length}</div>
+            </div>
+            
+            <div className="flex-1 bg-card border border-border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">確定予定</span>
+                <Calendar className="h-3 w-3 text-confirmed" />
+              </div>
+              <div className="text-lg font-bold text-confirmed">{confirmedEventsCount}</div>
+            </div>
+            
+            <div className="flex-1 bg-card border border-border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">候補日</span>
+                <Clock className="h-3 w-3 text-candidate" />
+              </div>
+              <div className="text-lg font-bold text-candidate">{candidateEventsCount}</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* PC用：従来通りの縦型カード */}
+        <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">総企業数</CardTitle>
@@ -201,27 +326,27 @@ const Index = () => {
         {/* Main Content Tabs */}
         <Tabs defaultValue="companies" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="companies">企業一覧</TabsTrigger>
-            <TabsTrigger value="events">予定一覧</TabsTrigger>
-            <TabsTrigger value="calendar">カレンダー</TabsTrigger>
+            <TabsTrigger value="companies" className="text-xs sm:text-sm">企業一覧</TabsTrigger>
+            <TabsTrigger value="events" className="text-xs sm:text-sm">予定一覧</TabsTrigger>
+            <TabsTrigger value="calendar" className="text-xs sm:text-sm">カレンダー</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="companies" className="space-y-6">
+          <TabsContent value="companies" className="space-y-4 sm:space-y-6">
             <div>
-              <h2 className="text-xl font-semibold mb-4">応募企業 ({companies.length}社)</h2>
+              <h2 className="text-lg sm:text-xl font-semibold mb-4">応募企業 ({companies.length}社)</h2>
               {companies.length === 0 ? (
                 <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">まだ企業が登録されていません</h3>
-                    <p className="text-muted-foreground text-center mb-4">
+                  <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+                    <Building2 className="h-8 sm:h-12 w-8 sm:w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-base sm:text-lg font-medium mb-2">まだ企業が登録されていません</h3>
+                    <p className="text-muted-foreground text-center mb-4 text-sm sm:text-base">
                       最初の企業を追加して就活管理を始めましょう
                     </p>
                     <AddCompanyForm onAddCompany={handleAddCompany} />
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {companies.map((company) => (
                     <CompanyCard
                       key={company.id}
@@ -237,10 +362,10 @@ const Index = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="events" className="space-y-6">
+          <TabsContent value="events" className="space-y-4 sm:space-y-6">
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">予定一覧</h2>
+              <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
+                <h2 className="text-lg sm:text-xl font-semibold">予定一覧</h2>
                 <AddEventForm 
                   key="add-event-form"
                   companies={companies}
@@ -261,16 +386,16 @@ const Index = () => {
               </div>
               {events.length === 0 ? (
                 <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">まだ予定がありません</h3>
-                    <p className="text-muted-foreground text-center">
+                  <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+                    <Calendar className="h-8 sm:h-12 w-8 sm:w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-base sm:text-lg font-medium mb-2">まだ予定がありません</h3>
+                    <p className="text-muted-foreground text-center text-sm sm:text-base">
                       企業を追加して面接や説明会の予定を管理しましょう
                     </p>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   {events.map((event) => (
                     <EventCard
                       key={event.id}

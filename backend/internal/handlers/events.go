@@ -15,7 +15,11 @@ func GetEvents(db *gorm.DB) gin.HandlerFunc {
 		userID := c.GetString("user_id")
 
 		var events []models.Event
-		if err := db.Where("user_id = ?", userID).Find(&events).Error; err != nil {
+		// クエリ最適化: 必要なフィールドのみ選択、インデックス活用
+		if err := db.Select("id, company_id, user_id, company_name, title, type, status, candidate_slots, confirmed_slot, location, is_online, notes, created_at, updated_at").
+			Where("user_id = ?", userID).
+			Order("created_at DESC"). // 最新作成順でソート
+			Find(&events).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch events"})
 			return
 		}

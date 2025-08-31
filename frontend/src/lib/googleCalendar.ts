@@ -10,35 +10,26 @@ interface CalendarEventData {
 }
 
 /**
- * GoogleカレンダーのイベントURL形式に変換
+ * GoogleカレンダーのURLを生成
  * @param eventData カレンダーイベントデータ
- * @returns GoogleカレンダーのイベントURL
+ * @returns GoogleカレンダーのURL
  */
 export function generateGoogleCalendarUrl(eventData: CalendarEventData): string {
   const baseUrl = 'https://calendar.google.com/calendar/render';
   
   // 日時をGoogleカレンダー形式に変換
-  // Googleカレンダーは日付のみの場合と時刻を含む場合で異なる形式を期待
-  const formatDateTime = (date: Date): string => {
-    // 日本時間でのローカル時刻をそのまま使用
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = '00'; // 秒は常に00に固定
-    
-    // Googleカレンダーの時刻付きイベント形式: YYYYMMDDTHHMMSS
-    const formatted = `${year}${month}${day}T${hours}${minutes}${seconds}`;
-    console.log(`日時変換: ${date.toISOString()} -> ${formatted}`);
-    return formatted;
-  };
-
-  const startFormatted = formatDateTime(eventData.start);
-  const endFormatted = formatDateTime(eventData.end);
-  const datesParam = `${startFormatted}/${endFormatted}`;
+  const startDate = new Date(eventData.start);
+  const endDate = new Date(eventData.end);
   
-  console.log(`Googleカレンダー用日時: ${datesParam}`);
+  const startStr = startDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const endStr = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  
+  const datesParam = `${startStr}/${endStr}`;
+  
+  // 開発環境でのみデバッグログを表示
+  if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_GOOGLE_CALENDAR === 'true') {
+    console.log(`Googleカレンダー用日時: ${datesParam}`);
+  }
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
@@ -50,7 +41,11 @@ export function generateGoogleCalendarUrl(eventData: CalendarEventData): string 
   });
 
   const url = `${baseUrl}?${params.toString()}`;
-  console.log(`生成されたURL: ${url}`);
+  
+  // 開発環境でのみデバッグログを表示
+  if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_GOOGLE_CALENDAR === 'true') {
+    console.log(`生成されたURL: ${url}`);
+  }
   
   return url;
 }
@@ -65,7 +60,8 @@ export function createCalendarEventFromJobEvent(
   event: Event, 
   company: Company
 ): CalendarEventData | null {
-  if (!event.confirmedSlot) {
+  // データ構造の不一致を修正: confirmedSlot → confirmed_slot
+  if (!event.confirmed_slot) {
     return null; // 確定していない場合はnull
   }
 
@@ -85,7 +81,7 @@ export function createCalendarEventFromJobEvent(
     `業界: ${company.industry}`,
     `職種: ${company.position}`,
     `イベント: ${event.title}`,
-    `形式: ${event.isOnline ? 'オンライン' : 'オフライン'}`,
+    `形式: ${event.is_online ? 'オンライン' : 'オフライン'}`,
     event.location ? `場所: ${event.location}` : '',
     event.notes ? `備考: ${event.notes}` : '',
     '',
@@ -94,10 +90,10 @@ export function createCalendarEventFromJobEvent(
 
   return {
     title,
-    start: event.confirmedSlot.startTime,
-    end: event.confirmedSlot.endTime,
+    start: event.confirmed_slot.start_time,
+    end: event.confirmed_slot.end_time,
     description,
-    location: event.isOnline ? 'オンライン' : (event.location || ''),
+    location: event.is_online ? 'オンライン' : (event.location || ''),
   };
 }
 
@@ -139,10 +135,11 @@ export function exportMultipleToGoogleCalendar(
 ): number {
   let successCount = 0;
   
-  const confirmedEvents = events.filter(event => event.confirmedSlot);
+  // データ構造の不一致を修正: confirmedSlot → confirmed_slot
+  const confirmedEvents = events.filter(event => event.confirmed_slot);
   
   confirmedEvents.forEach((event, index) => {
-    const company = companies.find(c => c.id === event.companyId);
+    const company = companies.find(c => c.id === event.company_id);
     if (company) {
       // 少し間隔を開けて連続でタブを開く
       setTimeout(() => {
