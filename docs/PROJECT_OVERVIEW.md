@@ -106,31 +106,31 @@ interface Company {
   name: string;
   industry: string;
   position: string;
-  currentStage: SelectionStage;
+  current_stage: SelectionStage;  // 選考ステージ
   notes?: string;              // 企業に関するメモ
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 interface Event {
   id: string;
-  companyId: string;
-  companyName: string;
+  company_id: string;
+  company_name: string;
   title: string;
   type: EventType;             // 'interview' | 'info_session' | 'group_discussion' | 'final_interview'
   status: EventStatus;         // 'candidate' | 'confirmed' | 'rejected'
-  candidateSlots: TimeSlot[];  // 複数の候補日程
-  confirmedSlot?: TimeSlot;    // 確定した日程
+  candidate_slots: TimeSlot[];  // 複数の候補日程
+  confirmed_slot?: TimeSlot;    // 確定した日程
   location?: string;
-  isOnline: boolean;
+  is_online: boolean;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 interface TimeSlot {
-  startTime: Date;             // 5分刻みで管理
-  endTime: Date;
+  start_time: Date;             // 5分刻みで管理
+  end_time: Date;
 }
 
 type SelectionStage = 'document_review' | 'first_interview' | 'second_interview' | 'final_interview' | 'offer' | 'rejected';
@@ -315,5 +315,6 @@ checkConfirmedEventConflict(selectedSlot, allEvents)
 - **高性能**: React Query + Goによる高速データ処理
 - **無料枠**: 全サービス無料プランでの構成
 - **商用利用可能**: エンタープライズレベルのセキュリティ水準
+- **フィールド命名規則統一**: フロントエンド・バックエンド間のスネークケース統一による型安全性向上
 
 このドキュメントは、プロジェクトの全体像を把握し、新機能の実装や既存機能の修正に取り掛かる際の指針となります。常に最新の状態に更新し、開発チーム全体で共有してください。
