@@ -100,6 +100,7 @@ PRODUCTION_FRONTEND_URL=https://your-app.vercel.app
 1. **サインアップ**: メール/パスワードまたはGoogleアカウントで登録
 2. **ログイン**: 認証情報でアプリにアクセス
 3. **マルチデバイス**: PC・スマホで同じアカウントでデータ同期
+4. **セキュア**: JWT認証・Row Level Security により個人データを完全保護
 
 ### 🏢 企業管理
 1. **企業追加**: 業界・応募職種・選考ステージを登録
@@ -122,7 +123,8 @@ PRODUCTION_FRONTEND_URL=https://your-app.vercel.app
 - [詳細仕様書](./PROJECT_OVERVIEW.md)
 - [フロントエンド README](./frontend/README.md)
 - [バックエンド README](./backend/README.md)
-- [API仕様書](./docs/api/)
+- [開発ログ](./DEVELOPMENT_LOG.md)
+- [デプロイガイド](./DEPLOYMENT.md)
 
 ## 📄 ライセンス
 

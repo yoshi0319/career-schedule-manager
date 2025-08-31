@@ -8,9 +8,11 @@ const getSupabaseClient = () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-    // デバッグ用ログ
-    console.log('Supabase URL:', supabaseUrl)
-    console.log('Supabase Key exists:', !!supabaseAnonKey)
+    // 開発環境のみでログ表示
+    if (import.meta.env.DEV && import.meta.env.MODE === 'development') {
+      console.log('Supabase URL:', supabaseUrl)
+      console.log('Supabase Key exists:', !!supabaseAnonKey)
+    }
 
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('Missing Supabase environment variables:', {
@@ -21,7 +23,9 @@ const getSupabaseClient = () => {
     }
 
     supabase = createClient(supabaseUrl, supabaseAnonKey)
-    console.log('Supabase client created successfully')
+    if (import.meta.env.DEV && import.meta.env.MODE === 'development') {
+      console.log('Supabase client created successfully')
+    }
   }
   return supabase
 }

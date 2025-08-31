@@ -9,9 +9,12 @@ import (
 	"career-schedule-api/internal/handlers"
 	"career-schedule-api/internal/middleware"
 
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 )
 
@@ -33,7 +36,8 @@ func main() {
 		db, err = database.New(cfg.DatabaseURL)
 		if err != nil {
 			log.Printf("CRITICAL: Failed to connect to database: %v", err)
-			log.Printf("DATABASE_URL: %s", cfg.DatabaseURL)
+			// セキュリティ: パスワードを含むURLは非表示
+			log.Printf("Database connection failed - check DATABASE_URL configuration")
 			log.Printf("Starting server without database connection for debugging...")
 			db = nil
 		} else {
@@ -69,8 +73,28 @@ func main() {
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	corsConfig.AllowCredentials = true
 	r.Use(cors.New(corsConfig))
+	
+	// Rate limiting middleware
+	limiter := rate.NewLimiter(rate.Every(time.Minute), 100) // 100 requests per minute
+	r.Use(func(c *gin.Context) {
+		if !limiter.Allow() {
+			c.JSON(429, gin.H{"error": "Rate limit exceeded"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	})
+	
+	// Security headers
+	r.Use(func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Next()
+	})
 
-	// Health check endpoint
+	// Health check endpoint (public)
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "career-schedule-api"})
 	})
