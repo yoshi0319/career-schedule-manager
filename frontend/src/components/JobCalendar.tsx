@@ -151,28 +151,29 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* 今後の予定サマリー */}
       {upcomingEvents.length > 0 && (
         <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
+          <CardHeader className="pb-3 sm:pb-4">
+            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                 今後の確定予定
               </CardTitle>
               <Button
                 size="sm"
                 onClick={handleBulkExport}
-                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 w-full sm:w-auto text-xs sm:text-sm"
               >
                 <CalendarIcon className="h-4 w-4 mr-2" />
-                すべてGoogleカレンダーに追加
+                <span className="hidden sm:inline">すべてGoogleカレンダーに追加</span>
+                <span className="sm:hidden">一括追加</span>
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               {upcomingEvents.map((event) => {
                 const company = getCompany(event.company_id);
                 if (!company || !event.confirmed_slot) return null;
@@ -180,13 +181,13 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
                 return (
                   <div
                     key={event.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-confirmed/10 border-confirmed/20"
+                    className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border bg-confirmed/10 border-confirmed/20"
                   >
                     <div className="text-confirmed">
-                      <CalendarIcon className="h-4 w-4" />
+                      <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{company.name}</div>
+                      <div className="font-medium text-xs sm:text-sm truncate">{company.name}</div>
                       <div className="text-xs text-muted-foreground truncate">{event.title}</div>
                       <div className="text-xs font-medium text-confirmed">
                         {format(event.confirmed_slot.start_time, 'M/d(E) HH:mm', { locale: ja })}
@@ -202,21 +203,21 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
 
       {/* カレンダーヘッダー */}
       <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
+        <CardHeader className="pb-3 sm:pb-4">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               就活カレンダー
             </CardTitle>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:gap-4">
               {/* 凡例 */}
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-confirmed rounded-full"></div>
+              <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-confirmed rounded-full"></div>
                   <span>確定</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-candidate rounded-full"></div>
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-candidate rounded-full"></div>
                   <span>候補</span>
                 </div>
               </div>
@@ -226,16 +227,18 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
                   variant="outline"
                   size="sm"
                   onClick={() => navigateMonth('prev')}
+                  className="h-8 w-8 sm:h-9 sm:w-auto px-2 sm:px-3"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <div className="min-w-[120px] text-center font-medium">
+                <div className="min-w-[80px] sm:min-w-[120px] text-center font-medium text-xs sm:text-sm">
                   {format(currentMonth, 'yyyy年M月', { locale: ja })}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => navigateMonth('next')}
+                  className="h-8 w-8 sm:h-9 sm:w-auto px-2 sm:px-3"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -244,14 +247,14 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="px-2 sm:px-6">
           {/* 曜日ヘッダー */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
+          <div className="grid grid-cols-7 gap-0 mb-2">
             {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
               <div
                 key={day}
                 className={cn(
-                  "h-8 flex items-center justify-center text-sm font-medium",
+                  "h-6 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-medium border-b border-border/30",
                   index === 0 ? "text-red-600" : index === 6 ? "text-blue-600" : "text-muted-foreground"
                 )}
               >
@@ -261,73 +264,74 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
           </div>
 
           {/* カレンダーグリッド */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, index) => {
-              const dayEvents = getEventsForDate(day);
-              const isCurrentMonth = isSameMonth(day, currentMonth);
-              const isSelected = selectedDate && isSameDay(day, selectedDate);
-              const isToday = isSameDay(day, new Date());
-              const hasEvents = dayEvents.length > 0;
+          <div className="border border-border rounded-lg overflow-hidden">
+            <div className="grid grid-cols-7">
+              {calendarDays.map((day, index) => {
+                const dayEvents = getEventsForDate(day);
+                const isCurrentMonth = isSameMonth(day, currentMonth);
+                const isSelected = selectedDate && isSameDay(day, selectedDate);
+                const isToday = isSameDay(day, new Date());
+                const hasEvents = dayEvents.length > 0;
 
-              return (
-                <Button
-                  key={day.toISOString()}
-                  variant="ghost"
-                  className={cn(
-                    "h-20 md:h-24 p-1 flex flex-col items-start justify-start hover:bg-accent relative text-left",
-                    !isCurrentMonth && "text-muted-foreground opacity-50",
-                    isSelected && "bg-accent border-2 border-primary",
-                    isToday && "bg-primary/10 font-bold"
-                  )}
-                  onClick={() => setSelectedDate(day)}
-                >
-                  {/* 日付 */}
-                  <div className={cn(
-                    "text-sm",
-                    index % 7 === 0 ? "text-red-600" : index % 7 === 6 ? "text-blue-600" : "",
-                    isToday && "text-primary"
-                  )}>
-                    {format(day, 'd')}
-                  </div>
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className={cn(
+                      "h-16 sm:h-20 md:h-24 p-1 sm:p-2 flex flex-col items-center justify-start hover:bg-accent relative border-r border-b border-border/30 last:border-r-0 cursor-pointer",
+                      !isCurrentMonth && "text-muted-foreground opacity-50",
+                      isSelected && "bg-accent border-2 border-primary",
+                      isToday && "bg-primary/10 font-bold"
+                    )}
+                    onClick={() => setSelectedDate(day)}
+                  >
+                    {/* 日付 - 中央揃え */}
+                    <div className={cn(
+                      "text-xs sm:text-sm w-full text-center",
+                      index % 7 === 0 ? "text-red-600" : index % 7 === 6 ? "text-blue-600" : "",
+                      isToday && "text-primary"
+                    )}>
+                      {format(day, 'd')}
+                    </div>
 
-                  {/* イベント表示 */}
-                  {hasEvents && (
-                    <div className="flex flex-col gap-1 w-full mt-1">
-                      {dayEvents.slice(0, 2).map((dayEvent, eventIndex) => (
-                        <div
-                          key={`${dayEvent.event.id}-${eventIndex}`}
-                          className={cn(
-                            "w-full px-1 py-0.5 rounded text-[9px] md:text-[10px] leading-tight",
-                            dayEvent.type === 'confirmed' 
-                              ? "bg-confirmed text-white" 
-                              : "bg-candidate text-white"
-                          )}
-                          title={`${dayEvent.company.name} - ${dayEvent.event.title} (${formatTime(dayEvent.timeSlot.start_time)})`}
-                        >
-                          <div className="flex items-center gap-1">
-                            <span className="text-[8px]">{getEventTypeIcon(dayEvent.event.type)}</span>
-                            <div className="truncate font-medium flex-1">
-                              {getShortCompanyName(dayEvent.company.name)}
+                    {/* イベント表示 */}
+                    {hasEvents && (
+                      <div className="flex flex-col gap-0.5 sm:gap-1 w-full mt-1">
+                        {dayEvents.slice(0, 2).map((dayEvent, eventIndex) => (
+                          <div
+                            key={`${dayEvent.event.id}-${eventIndex}`}
+                            className={cn(
+                              "w-full px-1 py-0.5 rounded text-[8px] sm:text-[9px] md:text-[10px] leading-tight",
+                              dayEvent.type === 'confirmed' 
+                                ? "bg-confirmed text-white" 
+                                : "bg-candidate text-white"
+                            )}
+                            title={`${dayEvent.company.name} - ${dayEvent.event.title} (${formatTime(dayEvent.timeSlot.start_time)})`}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span className="text-[7px] sm:text-[8px]">{getEventTypeIcon(dayEvent.event.type)}</span>
+                              <div className="truncate font-medium flex-1">
+                                {getShortCompanyName(dayEvent.company.name)}
+                              </div>
+                            </div>
+                            <div className="truncate text-[7px] sm:text-[8px] md:text-[9px] opacity-90">
+                              {dayEvent.type === 'confirmed' 
+                                ? formatTime(dayEvent.timeSlot.start_time)
+                                : `${formatTime(dayEvent.timeSlot.start_time)}〜`
+                              }
                             </div>
                           </div>
-                          <div className="truncate text-[8px] md:text-[9px] opacity-90">
-                            {dayEvent.type === 'confirmed' 
-                              ? formatTime(dayEvent.timeSlot.start_time)
-                              : `${formatTime(dayEvent.timeSlot.start_time)}〜`
-                            }
+                        ))}
+                        {dayEvents.length > 2 && (
+                          <div className="text-[8px] sm:text-[9px] md:text-[10px] text-muted-foreground text-center bg-muted rounded px-1 py-0.5">
+                            他{dayEvents.length - 2}件
                           </div>
-                        </div>
-                      ))}
-                      {dayEvents.length > 2 && (
-                        <div className="text-[9px] md:text-[10px] text-muted-foreground text-center bg-muted rounded px-1 py-0.5">
-                          他{dayEvents.length - 2}件
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </Button>
-              );
-            })}
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -335,24 +339,24 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
       {/* 選択された日付の詳細 */}
       {selectedDate && (
         <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
               {format(selectedDate, 'M月d日(E)', { locale: ja })} の予定
             </CardTitle>
           </CardHeader>
           <CardContent>
             {selectedDateEvents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>この日に予定はありません</p>
+              <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                <CalendarIcon className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+                <p className="text-sm sm:text-base">この日に予定はありません</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {selectedDateEvents.map((dayEvent, index) => (
                   <div
                     key={`${dayEvent.event.id}-${index}`}
-                    className="flex items-start gap-3 p-4 rounded-lg border hover:bg-accent/50 transition-colors"
+                    className="flex flex-col space-y-2 sm:flex-row sm:items-start sm:gap-3 p-3 sm:p-4 rounded-lg border hover:bg-accent/50 transition-colors"
                   >
                     {/* 時間とステータス */}
                     <div className="flex flex-col items-center gap-2 min-w-[80px]">
@@ -376,16 +380,16 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
 
                     {/* イベント詳細 */}
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{dayEvent.company.name}</span>
-                        <Badge variant="outline" className="text-xs">
+                      <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:gap-2 mb-1">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium text-sm sm:text-base">{dayEvent.company.name}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs w-fit">
                           {dayEvent.company.industry}
                         </Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground mb-1">
-                        {dayEvent.event.title}
-                      </div>
+                      <div className="text-sm text-muted-foreground mb-1">{dayEvent.event.title}</div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {dayEvent.event.is_online ? (
                           <span>🌐 オンライン</span>
