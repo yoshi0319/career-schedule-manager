@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +81,18 @@ export const CompanyDetailModal = ({
   const [currentStage, setCurrentStage] = useState<SelectionStage>(company.current_stage);
   const [notes, setNotes] = useState(company.notes || '');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // 編集開始時の元の値を保存
+  const [originalStage, setOriginalStage] = useState<SelectionStage>(company.current_stage);
+  const [originalNotes, setOriginalNotes] = useState(company.notes || '');
+
+  // companyプロパティが変更された際にローカル状態を更新
+  useEffect(() => {
+    setCurrentStage(company.current_stage);
+    setNotes(company.notes || '');
+    setOriginalStage(company.current_stage);
+    setOriginalNotes(company.notes || '');
+  }, [company.current_stage, company.notes]);
 
   const companyEvents = events.filter(event => event.company_id === company.id);
   const confirmedEvents = companyEvents.filter(event => event.status === 'confirmed');
@@ -119,13 +131,25 @@ export const CompanyDetailModal = ({
                     <Save className="h-4 w-4 mr-1" />
                     保存
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    // キャンセル時に元の値に戻す
+                    setCurrentStage(originalStage);
+                    setNotes(originalNotes);
+                    setIsEditing(false);
+                  }}>
                     <X className="h-4 w-4 mr-1" />
                     キャンセル
                   </Button>
                 </>
               ) : (
-                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                <Button size="sm" variant="outline" onClick={() => {
+                  // 編集開始時に元の値を保存
+                  setOriginalStage(company.current_stage);
+                  setOriginalNotes(company.notes || '');
+                  setCurrentStage(company.current_stage);
+                  setNotes(company.notes || '');
+                  setIsEditing(true);
+                }}>
                   <Edit3 className="h-4 w-4 mr-1" />
                   編集
                 </Button>
