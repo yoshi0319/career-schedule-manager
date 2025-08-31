@@ -248,6 +248,16 @@ healthcheckTimeout = 30
 - **課題**: 不正データの入力防止
 - **解決**: go-playground/validator/v10による厳密な検証
 
+### 5. JSONBフィールドの型変換エラー
+- **課題**: バックエンドのJSONBフィールドとフロントエンドのDate型の不一致
+- **原因**: PostgreSQL JSONBフィールド（candidate_slots, confirmed_slot）が文字列として処理される
+- **症状**: `slot.start_time.toLocaleDateString is not a function` エラー、画面真っ白化
+- **解決**: 
+  - バックエンド: `json.RawMessage` 型でJSONBデータを適切に処理
+  - フロントエンド: API レスポンスで文字列日時を `Date` オブジェクトに変換
+- **影響**: 面接日程追加・表示機能の完全復旧
+- **修正ファイル**: `models.go`, `handlers/events.go`, `useEvents.ts`, `api.ts`
+
 ## 📈 開発の成果
 
 ### 技術的成果
@@ -256,6 +266,9 @@ healthcheckTimeout = 30
 - ✅ マルチデバイス対応
 - ✅ 高性能API（20-40ms応答時間）
 - ✅ 型安全性（TypeScript + Go）
+- ✅ フィールド命名規則の統一（スネークケース）
+- ✅ フロントエンド・バックエンド間の型安全性向上
+- ✅ JSONBデータの適切な型変換処理
 
 ### 非機能要件の達成
 - ✅ セキュリティ（JWT + RLS）
@@ -297,6 +310,6 @@ healthcheckTimeout = 30
 
 このドキュメントは、技術的な意思決定の背景と、問題解決の過程を記録しています。今後の機能拡張や類似プロジェクトの参考として活用してください。
 
-**最終更新**: 2025年8月31日
+**最終更新**: 2025年8月31日（JSONB型変換エラー解決完了）
 **開発期間**: 約1日（フロントエンド → フルスタック化）  
 **技術レベル**: 初級〜中級向けフルスタック構成
