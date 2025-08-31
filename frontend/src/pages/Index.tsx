@@ -165,15 +165,70 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">就活ダッシュボード</h1>
-              <p className="text-muted-foreground mt-1">あなたの就活を効率的に管理</p>
-              <p className="text-sm text-muted-foreground mt-1">
+        <div className="container mx-auto px-4 py-4 sm:py-6">
+          {/* スマホ用レイアウト */}
+          <div className="block sm:hidden relative">
+            {/* ログアウトボタン - 右上に固定（スマホのみ） */}
+            <div className="absolute top-0 right-0 z-10">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await signOut()
+                  } catch (error) {
+                    if (import.meta.env.DEV) {
+                      console.error('Logout failed:', error)
+                    }
+                    // エラーが発生しても強制的にログアウト状態にする
+                    window.location.reload()
+                  }
+                }}
+                disabled={false}
+                className="h-8 px-2"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* メインコンテンツ（スマホ） */}
+            <div className="flex flex-col space-y-4">
+              {/* タイトル部分 */}
+              <div className="flex-1 min-w-0 pr-20">
+                <h1 className="text-2xl font-bold text-foreground leading-tight">
+                  就活ダッシュボード
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  あなたの就活を効率的に管理
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  ようこそ、{user.email} さん
+                </p>
+              </div>
+              
+              {/* 企業を追加ボタン - 左下に配置（スマホ） */}
+              <div className="flex justify-start">
+                <AddCompanyForm onAddCompany={handleAddCompany} />
+              </div>
+            </div>
+          </div>
+          
+          {/* PC用レイアウト */}
+          <div className="hidden sm:flex items-center justify-between">
+            {/* タイトル部分 */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-3xl font-bold text-foreground leading-tight">
+                就活ダッシュボード
+              </h1>
+              <p className="text-base text-muted-foreground mt-1 leading-relaxed">
+                あなたの就活を効率的に管理
+              </p>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                 ようこそ、{user.email} さん
               </p>
             </div>
+            
+            {/* ボタン部分 - 横並び（PC） */}
             <div className="flex items-center gap-4">
               <AddCompanyForm onAddCompany={handleAddCompany} />
               <Button
@@ -191,6 +246,7 @@ const Index = () => {
                   }
                 }}
                 disabled={false}
+                className="h-9 px-3"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 ログアウト
@@ -202,7 +258,7 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">総企業数</CardTitle>
@@ -240,27 +296,27 @@ const Index = () => {
         {/* Main Content Tabs */}
         <Tabs defaultValue="companies" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="companies">企業一覧</TabsTrigger>
-            <TabsTrigger value="events">予定一覧</TabsTrigger>
-            <TabsTrigger value="calendar">カレンダー</TabsTrigger>
+            <TabsTrigger value="companies" className="text-xs sm:text-sm">企業一覧</TabsTrigger>
+            <TabsTrigger value="events" className="text-xs sm:text-sm">予定一覧</TabsTrigger>
+            <TabsTrigger value="calendar" className="text-xs sm:text-sm">カレンダー</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="companies" className="space-y-6">
+          <TabsContent value="companies" className="space-y-4 sm:space-y-6">
             <div>
-              <h2 className="text-xl font-semibold mb-4">応募企業 ({companies.length}社)</h2>
+              <h2 className="text-lg sm:text-xl font-semibold mb-4">応募企業 ({companies.length}社)</h2>
               {companies.length === 0 ? (
                 <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">まだ企業が登録されていません</h3>
-                    <p className="text-muted-foreground text-center mb-4">
+                  <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+                    <Building2 className="h-8 sm:h-12 w-8 sm:w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-base sm:text-lg font-medium mb-2">まだ企業が登録されていません</h3>
+                    <p className="text-muted-foreground text-center mb-4 text-sm sm:text-base">
                       最初の企業を追加して就活管理を始めましょう
                     </p>
                     <AddCompanyForm onAddCompany={handleAddCompany} />
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {companies.map((company) => (
                     <CompanyCard
                       key={company.id}
@@ -276,10 +332,10 @@ const Index = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="events" className="space-y-6">
+          <TabsContent value="events" className="space-y-4 sm:space-y-6">
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">予定一覧</h2>
+              <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
+                <h2 className="text-lg sm:text-xl font-semibold">予定一覧</h2>
                 <AddEventForm 
                   key="add-event-form"
                   companies={companies}
@@ -300,16 +356,16 @@ const Index = () => {
               </div>
               {events.length === 0 ? (
                 <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">まだ予定がありません</h3>
-                    <p className="text-muted-foreground text-center">
+                  <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+                    <Calendar className="h-8 sm:h-12 w-8 sm:w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-base sm:text-lg font-medium mb-2">まだ予定がありません</h3>
+                    <p className="text-muted-foreground text-center text-sm sm:text-base">
                       企業を追加して面接や説明会の予定を管理しましょう
                     </p>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   {events.map((event) => (
                     <EventCard
                       key={event.id}
