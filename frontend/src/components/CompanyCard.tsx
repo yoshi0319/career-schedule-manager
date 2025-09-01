@@ -147,8 +147,13 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
             <Calendar className="h-4 w-4" />
             <span>{eventCount}件の予定</span>
           </div>
-          <Button variant="outline" size="sm" onClick={onViewDetails}>
-            詳細を見る
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onViewDetails}
+            className="text-blue-600 hover:text-blue-700 border-blue-600 hover:border-blue-700 hover:bg-blue-50"
+          >
+            企業詳細
           </Button>
         </div>
       </CardContent>
