@@ -193,10 +193,12 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
         <div className="flex gap-2 pt-2">
           {event.status === 'candidate' && (
             <Button
+              variant="outline"
               size="sm"
               onClick={() => setShowConfirmModal(true)}
+              className="text-green-600 hover:text-green-700 border-green-600 hover:border-green-700 hover:bg-green-50"
             >
-              確認
+              候補日詳細
             </Button>
           )}
           {event.status === 'confirmed' && (
