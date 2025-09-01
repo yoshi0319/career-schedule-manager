@@ -137,11 +137,11 @@ export const AddCompanyForm = ({ onAddCompany }: AddCompanyFormProps) => {
           </div>
           
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1">
-              追加
-            </Button>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               キャンセル
+            </Button>
+            <Button type="submit" className="flex-1">
+              追加
             </Button>
           </div>
         </form>
