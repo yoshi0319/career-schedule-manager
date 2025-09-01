@@ -15,6 +15,17 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useState } from 'react';
 
 const selectionStageOptions: SelectionStage[] = [
   'document_review',
@@ -52,6 +63,7 @@ const stageColors: Record<SelectionStage, string> = {
 };
 
 export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onDeleteCompany }: CompanyCardProps) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const companyEvents = events.filter(event => event.company_id === company.id);
   const confirmedEvents = companyEvents.filter(event => event.status === 'confirmed');
   const eventCount = companyEvents.length;
@@ -100,7 +112,7 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  onClick={() => onDeleteCompany(company.id)}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="text-destructive focus:text-destructive"
                 >
                   <X className="h-4 w-4 mr-2" />
@@ -157,6 +169,30 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
           </Button>
         </div>
       </CardContent>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>企業の削除</AlertDialogTitle>
+            <AlertDialogDescription>
+              この企業を削除しますか？関連する予定も全て削除されます。<br />
+              この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onDeleteCompany(company.id);
+                setShowDeleteConfirm(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
