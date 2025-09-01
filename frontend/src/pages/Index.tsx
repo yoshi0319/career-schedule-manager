@@ -135,9 +135,7 @@ const Index = () => {
   };
 
   const handleDeleteEvent = (eventId: string) => {
-    if (confirm('この予定を削除しますか？')) {
-      deleteEventMutation.mutate(eventId);
-    }
+    deleteEventMutation.mutate(eventId);
   };
 
   const handleAddCompany = (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at'>) => {

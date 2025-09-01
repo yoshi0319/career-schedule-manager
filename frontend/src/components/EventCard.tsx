@@ -14,6 +14,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // 開始時間のみを表示する関数
 const formatStartTimeWithDate = (slot: TimeSlot): string => {
@@ -67,6 +77,7 @@ const statusColors: Record<EventStatus, string> = {
 export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditEvent, onDeleteEvent }: EventCardProps) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   const handleConfirmSlot = (selectedSlot: TimeSlot) => {
     onUpdateStatus(event.id, 'confirmed', selectedSlot);
@@ -131,7 +142,7 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  onClick={() => onDeleteEvent(event.id)}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -232,6 +243,29 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
         onConfirm={handleConfirmSlot}
         initialSelectedSlotIndex={selectedSlotIndex}
       />
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>予定の削除</AlertDialogTitle>
+            <AlertDialogDescription>
+              この予定を削除しますか？この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onDeleteEvent(event.id);
+                setShowDeleteConfirm(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
