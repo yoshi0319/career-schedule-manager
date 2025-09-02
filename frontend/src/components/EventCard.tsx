@@ -59,7 +59,8 @@ const eventTypeLabels: Record<EventType, string> = {
   interview: '面接',
   info_session: '説明会',
   group_discussion: 'グループディスカッション',
-  final_interview: '最終面接'
+  final_interview: '最終面接',
+  meeting: '面談'
 };
 
 const statusLabels: Record<EventStatus, string> = {
