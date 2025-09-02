@@ -155,7 +155,12 @@ const Index = () => {
     if (confirmed_slot) {
       confirmEventMutation.mutate({ id: eventId, confirmedSlot: confirmed_slot, status });
     } else {
-      updateEventMutation.mutate({ id: eventId, event: { status } });
+      // 候補に戻す場合は、確定済みスロットもクリアする
+      const updateData: any = { status };
+      if (status === 'candidate') {
+        updateData.confirmed_slot = null;
+      }
+      updateEventMutation.mutate({ id: eventId, event: updateData });
     }
   };
 

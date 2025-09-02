@@ -209,7 +209,7 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
               onClick={() => setShowConfirmModal(true)}
               className="text-green-600 hover:text-green-700 border-green-600 hover:border-green-700 hover:bg-green-50"
             >
-              候補日詳細
+              候補日選択
             </Button>
           )}
           {event.status === 'confirmed' && (
@@ -217,7 +217,10 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onUpdateStatus(event.id, 'candidate')}
+                onClick={() => {
+                  // 候補に戻す際は、確定済みスロットもクリアする
+                  onUpdateStatus(event.id, 'candidate');
+                }}
                 className="text-gray-600 hover:text-gray-700"
               >
                 候補に戻す
