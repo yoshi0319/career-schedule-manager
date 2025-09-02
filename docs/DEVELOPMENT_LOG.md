@@ -338,6 +338,21 @@ healthcheckTimeout = 30
 - **影響**: より柔軟な予定管理が可能
 - **修正ファイル**: `types/index.ts`, `AddEventForm.tsx`, `EventCard.tsx`, `models/models.go`
 
+### 11. ブラウザキャッシュによる表示逆行問題（2025年9月2日実装）
+- **症状**: ステージ変更や削除後にリロードすると、変更前の状態に“戻って見える”。DevToolsを開いている時は正しく更新される。
+- **原因**: ブラウザ（Chrome）のHTTPキャッシュがGETレスポンスを保持。DevToolsを開くと「キャッシュ無効」が効くため最新表示になるが、閉じるとキャッシュから返される。React Queryの`invalidate/refetch`やSupabase Realtimeは“同一セッション中の同期”には有効だが、リロード時の初回GETがキャッシュだと古い。
+- **対策**:
+  - サーバー: 全APIレスポンスにキャッシュ無効ヘッダーを付与
+    - `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+    - `Pragma: no-cache`
+    - `Expires: 0`
+    - 実装: `backend/cmd/server/main.go` でグローバルミドルウェアを追加
+  - クライアント: すべてのAPIリクエストで`fetch`に`cache: 'no-store'`を指定
+    - 実装: `frontend/src/lib/api.ts` の `request()` に `cache: 'no-store'` を追加
+  - 併用改善: Supabase Realtime購読を導入し、他クライアントからの変更も自動反映
+    - 実装: `useSyncCompaniesRealtime`, `useSyncEventsRealtime`
+- **効果**: DevToolsの有無やリロード有無に関わらず、常に最新状態を取得・表示。
+
 ## 📈 開発の成果
 
 ### 技術的成果

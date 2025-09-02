@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Building2, Clock, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthForm } from '@/components/AuthForm';
-import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
-import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useConfirmEvent } from '@/hooks/useEvents';
+import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, useSyncCompaniesRealtime } from '@/hooks/useCompanies';
+import { useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent, useConfirmEvent, useSyncEventsRealtime } from '@/hooks/useEvents';
 import { CompanyCard } from '@/components/CompanyCard';
 import { EventCard } from '@/components/EventCard';
 import { AddCompanyForm } from '@/components/AddCompanyForm';
@@ -64,6 +64,8 @@ const Index = () => {
   // API データ取得（フック順序を維持）
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
   const { data: events = [], isLoading: eventsLoading } = useEvents();
+  useSyncCompaniesRealtime();
+  useSyncEventsRealtime();
   
   // API ミューテーション
   const createCompanyMutation = useCreateCompany();
@@ -123,6 +125,15 @@ const Index = () => {
   };
 
   const handleDeleteCompany = (companyId: string) => {
+    // 企業を削除する前に、関連する予定も削除
+    const companyEvents = events.filter(event => event.company_id === companyId);
+    
+    // 関連する予定を全て削除
+    companyEvents.forEach(event => {
+      deleteEventMutation.mutate(event.id);
+    });
+    
+    // 企業を削除
     deleteCompanyMutation.mutate(companyId);
   };
 
