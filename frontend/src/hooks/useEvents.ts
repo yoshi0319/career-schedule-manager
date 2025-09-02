@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { apiClient } from '../lib/api'
 import { Event } from '../types'
 import { useToast } from './use-toast'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
 
 // 日時データをDateオブジェクトに変換するヘルパー関数
 const processEventDates = (event: Event): Event => ({
@@ -20,6 +22,7 @@ const processEventDates = (event: Event): Event => ({
 // イベント一覧取得
 export const useEvents = () => {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   
   return useQuery({
     queryKey: ['events'],
@@ -36,12 +39,39 @@ export const useEvents = () => {
       // JSONBフィールドをDateオブジェクトに変換
       return events.map(processEventDates)
     },
-    staleTime: 5 * 60 * 1000, // 5分間はキャッシュを使用
-    gcTime: 10 * 60 * 1000, // 10分間メモリに保持
+    staleTime: 0, // キャッシュを即座に無効化
+    gcTime: 5 * 60 * 1000, // 5分間メモリに保持
     refetchOnWindowFocus: true, // ウィンドウフォーカス時の再取得を有効化
     refetchOnMount: true, // コンポーネントマウント時の再取得を有効化
     enabled: !!user, // ユーザーがログインしている場合のみ実行
   })
+}
+
+// Supabase Realtime 購読でイベント一覧を自動同期
+export const useSyncEventsRealtime = () => {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!user) return
+    const client = supabase()
+    const channel = client
+      .channel('events-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events', filter: `user_id=eq.${user.id}` },
+        () => {
+          // 変更検知時に最新取得
+          queryClient.invalidateQueries({ queryKey: ['events'] })
+          queryClient.refetchQueries({ queryKey: ['events'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      client.removeChannel(channel)
+    }
+  }, [user, queryClient])
 }
 
 // イベント作成
@@ -112,11 +142,23 @@ export const useDeleteEvent = () => {
   return useMutation({
     mutationFn: (id: string) => apiClient.deleteEvent(id),
     onSuccess: (_, deletedId) => {
-      // オプティミスティックアップデートで即座にUIを更新
-      queryClient.setQueryData(['events'], (oldData: Event[] | undefined) => {
-        if (!oldData) return oldData
-        return oldData.filter(e => e.id !== deletedId)
-      })
+      // デバッグ用ログ
+      if (import.meta.env.DEV) {
+        console.log('Event deletion success, updating cache...')
+        console.log('Cache before update:', queryClient.getQueryData(['events']))
+      }
+      
+      // より強制的なキャッシュ更新
+      queryClient.removeQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.refetchQueries({ queryKey: ['events'] })
+      
+      // デバッグ用ログ
+      if (import.meta.env.DEV) {
+        setTimeout(() => {
+          console.log('Cache after update:', queryClient.getQueryData(['events']))
+        }, 100)
+      }
       
       toast({
         title: "予定を削除しました",
