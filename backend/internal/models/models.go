@@ -25,7 +25,7 @@ type Event struct {
 	UserID         string          `json:"user_id" gorm:"column:user_id;type:uuid;not null;index"`
 	CompanyName    string          `json:"company_name" gorm:"column:company_name;not null" validate:"required,min=1,max=100"`
 	Title          string          `json:"title" gorm:"not null" validate:"required,min=1,max=200"`
-	Type           string          `json:"type" gorm:"not null" validate:"required,oneof=interview info_session group_discussion final_interview"`
+	Type           string          `json:"type" gorm:"not null" validate:"required,oneof=interview info_session group_discussion final_interview meeting"`
 	Status         string          `json:"status" gorm:"default:candidate" validate:"oneof=candidate confirmed rejected"`
 	CandidateSlots json.RawMessage `json:"candidate_slots" gorm:"column:candidate_slots;type:jsonb"`
 	ConfirmedSlot  json.RawMessage `json:"confirmed_slot" gorm:"column:confirmed_slot;type:jsonb"`

@@ -22,7 +22,7 @@ import { DateTimePicker } from '@/components/ui/date-time-picker';
 const eventSchema = z.object({
   title: z.string().min(1, '予定名を入力してください'),
   companyId: z.string().min(1, '企業を選択してください'),
-  type: z.enum(['interview', 'info_session', 'group_discussion', 'final_interview'] as const),
+  type: z.enum(['interview', 'info_session', 'group_discussion', 'final_interview', 'meeting'] as const),
   isOnline: z.boolean(),
   location: z.string().optional(),
   notes: z.string().optional(),
@@ -44,6 +44,7 @@ const eventTypeOptions = [
   { value: 'info_session', label: '説明会' },
   { value: 'group_discussion', label: 'グループディスカッション' },
   { value: 'final_interview', label: '最終面接' },
+  { value: 'meeting', label: '面談' },
 ];
 
 export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdateEvent, onClose }: AddEventFormProps) => {
@@ -382,25 +383,34 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                 <p className="text-sm text-muted-foreground mt-1">
                   面接可能な日時を複数設定してください（5分刻みで選択可能）
                 </p>
+                {editEvent?.status === 'confirmed' && (
+                  <Badge variant="secondary" className="text-xs mt-1">確定済みのため追加不可</Badge>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">開始時間</label>
-                  <DateTimePicker
-                    date={startTimeInput}
-                    onDateChange={setStartTimeInput}
-                    placeholder="開始時間を選択"
-                  />
+              {editEvent?.status !== 'confirmed' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">開始時間</label>
+                    <DateTimePicker
+                      date={startTimeInput}
+                      onDateChange={setStartTimeInput}
+                      placeholder="開始時間を選択"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">終了時間</label>
+                    <DateTimePicker
+                      date={endTimeInput}
+                      onDateChange={setEndTimeInput}
+                      placeholder="終了時間を選択"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">終了時間</label>
-                  <DateTimePicker
-                    date={endTimeInput}
-                    onDateChange={setEndTimeInput}
-                    placeholder="終了時間を選択"
-                  />
+              ) : (
+                <div className="p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground">
+                  確定済みの予定は日程を追加できません。候補に戻してから日程を追加してください。
                 </div>
-              </div>
+              )}
               {editingSlotIndex !== null ? (
                 <div className="flex gap-2">
                   <Button
@@ -423,16 +433,18 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                   </Button>
                 </div>
               ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addCandidateSlot}
-                  disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  時間枠を追加
-                </Button>
+                editEvent?.status !== 'confirmed' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addCandidateSlot}
+                    disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    時間枠を追加
+                  </Button>
+                )
               )}
               
               {(conflicts.hasConflict || candidateAddError) && (
@@ -489,26 +501,32 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                               )}
                             </div>
                             <div className="flex items-center gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => startEditSlot(index)}
-                                disabled={editingSlotIndex !== null && editingSlotIndex !== index}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeCandidateSlot(index)}
-                                disabled={editingSlotIndex !== null && editingSlotIndex !== index}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
+                              {editEvent?.status !== 'confirmed' ? (
+                                <>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => startEditSlot(index)}
+                                    disabled={editingSlotIndex !== null && editingSlotIndex !== index}
+                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeCandidateSlot(index)}
+                                    disabled={editingSlotIndex !== null && editingSlotIndex !== index}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <Badge variant="secondary" className="text-xs">確定済みのため編集不可</Badge>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -521,8 +539,17 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
               {candidateSlots.length === 0 && (
                 <div className="text-center py-4 text-sm text-muted-foreground bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
                   <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                  <p>候補日程を最低1つ追加してください</p>
-                  <p className="text-xs mt-1">開始時間と終了時間を選択して「時間枠を追加」をクリック</p>
+                  {editEvent?.status === 'confirmed' ? (
+                    <>
+                      <p>確定済みの予定です</p>
+                      <p className="text-xs mt-1">日程を変更する場合は「候補に戻す」から行ってください</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>候補日程を最低1つ追加してください</p>
+                      <p className="text-xs mt-1">開始時間と終了時間を選択して「時間枠を追加」をクリック</p>
+                    </>
+                  )}
                 </div>
               )}
             </div>

@@ -1,5 +1,5 @@
 export type EventStatus = 'candidate' | 'confirmed' | 'rejected';
-export type EventType = 'interview' | 'info_session' | 'group_discussion' | 'final_interview';
+export type EventType = 'interview' | 'info_session' | 'group_discussion' | 'final_interview' | 'meeting';
 export type SelectionStage = 'document_review' | 'first_interview' | 'second_interview' | 'final_interview' | 'offer' | 'rejected';
 
 export interface Company {

@@ -14,6 +14,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // 開始時間のみを表示する関数
 const formatStartTimeWithDate = (slot: TimeSlot): string => {
@@ -49,7 +59,8 @@ const eventTypeLabels: Record<EventType, string> = {
   interview: '面接',
   info_session: '説明会',
   group_discussion: 'グループディスカッション',
-  final_interview: '最終面接'
+  final_interview: '最終面接',
+  meeting: '面談'
 };
 
 const statusLabels: Record<EventStatus, string> = {
@@ -67,6 +78,7 @@ const statusColors: Record<EventStatus, string> = {
 export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditEvent, onDeleteEvent }: EventCardProps) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   const handleConfirmSlot = (selectedSlot: TimeSlot) => {
     onUpdateStatus(event.id, 'confirmed', selectedSlot);
@@ -131,7 +143,7 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  onClick={() => onDeleteEvent(event.id)}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -193,10 +205,12 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
         <div className="flex gap-2 pt-2">
           {event.status === 'candidate' && (
             <Button
+              variant="outline"
               size="sm"
               onClick={() => setShowConfirmModal(true)}
+              className="text-green-600 hover:text-green-700 border-green-600 hover:border-green-700 hover:bg-green-50"
             >
-              確認
+              候補日選択
             </Button>
           )}
           {event.status === 'confirmed' && (
@@ -204,7 +218,10 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onUpdateStatus(event.id, 'candidate')}
+                onClick={() => {
+                  // 候補に戻す際は、確定済みスロットもクリアする
+                  onUpdateStatus(event.id, 'candidate');
+                }}
                 className="text-gray-600 hover:text-gray-700"
               >
                 候補に戻す
@@ -230,6 +247,29 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
         onConfirm={handleConfirmSlot}
         initialSelectedSlotIndex={selectedSlotIndex}
       />
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>予定の削除</AlertDialogTitle>
+            <AlertDialogDescription>
+              この予定を削除しますか？この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onDeleteEvent(event.id);
+                setShowDeleteConfirm(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

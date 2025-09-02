@@ -135,9 +135,7 @@ const Index = () => {
   };
 
   const handleDeleteEvent = (eventId: string) => {
-    if (confirm('この予定を削除しますか？')) {
-      deleteEventMutation.mutate(eventId);
-    }
+    deleteEventMutation.mutate(eventId);
   };
 
   const handleAddCompany = (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at'>) => {
@@ -157,7 +155,12 @@ const Index = () => {
     if (confirmed_slot) {
       confirmEventMutation.mutate({ id: eventId, confirmedSlot: confirmed_slot, status });
     } else {
-      updateEventMutation.mutate({ id: eventId, event: { status } });
+      // 候補に戻す場合は、確定済みスロットもクリアする
+      const updateData: any = { status };
+      if (status === 'candidate') {
+        updateData.confirmed_slot = null;
+      }
+      updateEventMutation.mutate({ id: eventId, event: updateData });
     }
   };
 
@@ -271,18 +274,18 @@ const Index = () => {
             
             <div className="flex-1 bg-card border border-border rounded-lg p-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">確定予定</span>
-                <Calendar className="h-3 w-3 text-confirmed" />
-              </div>
-              <div className="text-lg font-bold text-confirmed">{confirmedEventsCount}</div>
-            </div>
-            
-            <div className="flex-1 bg-card border border-border rounded-lg p-3">
-              <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-muted-foreground">候補日</span>
                 <Clock className="h-3 w-3 text-candidate" />
               </div>
               <div className="text-lg font-bold text-candidate">{candidateEventsCount}</div>
+            </div>
+            
+            <div className="flex-1 bg-card border border-border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">確定予定</span>
+                <Calendar className="h-3 w-3 text-confirmed" />
+              </div>
+              <div className="text-lg font-bold text-confirmed">{confirmedEventsCount}</div>
             </div>
           </div>
         </div>
@@ -302,23 +305,23 @@ const Index = () => {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">確定予定</CardTitle>
-              <Calendar className="h-4 w-4 text-confirmed" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-confirmed">{confirmedEventsCount}</div>
-              <p className="text-xs text-muted-foreground">確定した面接・説明会</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">候補日</CardTitle>
               <Clock className="h-4 w-4 text-candidate" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-candidate">{candidateEventsCount}</div>
               <p className="text-xs text-muted-foreground">調整中の予定</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">確定予定</CardTitle>
+              <Calendar className="h-4 w-4 text-confirmed" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-confirmed">{confirmedEventsCount}</div>
+              <p className="text-xs text-muted-foreground">確定した面接・説明会</p>
             </CardContent>
           </Card>
         </div>
