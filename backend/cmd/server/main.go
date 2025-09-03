@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"career-schedule-api/internal/config"
 	"career-schedule-api/internal/database"
@@ -43,7 +44,12 @@ func main() {
 		} else {
 			// Auto-migrate tables
 			if err := database.Migrate(db); err != nil {
-				log.Printf("Warning: Failed to migrate database: %v", err)
+				// テーブルが既に存在する場合は警告のみ
+				if strings.Contains(err.Error(), "already exists") {
+					log.Println("Database connected successfully (tables already exist)")
+				} else {
+					log.Printf("Warning: Failed to migrate database: %v", err)
+				}
 			} else {
 				log.Println("Database connected and migrated successfully")
 			}
