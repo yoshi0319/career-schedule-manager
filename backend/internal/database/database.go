@@ -24,7 +24,13 @@ func New(databaseURL string) (*gorm.DB, error) {
 		DisableNestedTransaction: true,
 	}
 
-	db, err := gorm.Open(postgres.Open(databaseURL), config)
+	// PgBouncer 環境での prepared statement 問題回避のため、
+	// シンプルプロトコルを使用してドライバ側のプリペアドステートメントを無効化
+	dialector := postgres.New(postgres.Config{
+		DSN:                  databaseURL,
+		PreferSimpleProtocol: true,
+	})
+	db, err := gorm.Open(dialector, config)
 	if err != nil {
 		return nil, err
 	}
