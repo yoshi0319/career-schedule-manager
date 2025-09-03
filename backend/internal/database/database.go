@@ -11,7 +11,7 @@ import (
 
 func New(databaseURL string) (*gorm.DB, error) {
 	config := &gorm.Config{
-		// Prepared Statement の重複エラーを防ぐ設定
+		// Prepared Statement を完全に無効化（Supabase接続プールとの競合回避）
 		PrepareStmt: false,
 
 		// 本番環境でのログレベル調整
@@ -21,7 +21,13 @@ func New(databaseURL string) (*gorm.DB, error) {
 		DisableForeignKeyConstraintWhenMigrating: true,
 	}
 
-	db, err := gorm.Open(postgres.Open(databaseURL), config)
+	// PostgreSQLドライバー設定（prepared statement無効化）
+	postgresConfig := postgres.Config{
+		DSN:                  databaseURL,
+		PreferSimpleProtocol: true, // prepared statementを無効化
+	}
+
+	db, err := gorm.Open(postgres.New(postgresConfig), config)
 	if err != nil {
 		return nil, err
 	}
@@ -32,10 +38,11 @@ func New(databaseURL string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// コネクションプールの設定
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	// Supabase接続プールに最適化した設定
+	sqlDB.SetMaxIdleConns(5)                   // アイドル接続数を削減
+	sqlDB.SetMaxOpenConns(20)                  // 最大接続数を削減
+	sqlDB.SetConnMaxLifetime(30 * time.Minute) // 接続寿命を短縮
+	sqlDB.SetConnMaxIdleTime(10 * time.Minute) // アイドル時間を短縮
 
 	return db, nil
 }
