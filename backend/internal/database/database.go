@@ -19,6 +19,9 @@ func New(databaseURL string) (*gorm.DB, error) {
 
 		// コネクションプールの設定
 		DisableForeignKeyConstraintWhenMigrating: true,
+
+		// 本番環境でのPrepared Statement問題を回避
+		DisableNestedTransaction: true,
 	}
 
 	db, err := gorm.Open(postgres.Open(databaseURL), config)
@@ -32,10 +35,11 @@ func New(databaseURL string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// コネクションプールの設定
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
+	// コネクションプールの設定（本番環境最適化）
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(25)
 	sqlDB.SetConnMaxLifetime(time.Hour)
+	sqlDB.SetConnMaxIdleTime(time.Minute * 30)
 
 	return db, nil
 }
