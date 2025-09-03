@@ -292,6 +292,21 @@ healthcheckTimeout = 30
 - **影響**: 面接日程追加・表示機能の完全復旧
 - **修正ファイル**: `models.go`, `handlers/events.go`, `useEvents.ts`, `api.ts`
 
+### 6. GORM Prepared Statement重複エラー（本番環境）
+- **課題**: Supabase PostgreSQL + PgBouncer環境でのPrepared Statement重複・消失エラー
+- **原因**: PgBouncer（トランザクションプーラー）配下でGORMのPrepared Statementが重複・消失
+- **症状**: 
+  - `prepared statement "stmtcache_X" already exists (SQLSTATE 42P05)`
+  - `prepared statement "stmtcache_X" does not exist (SQLSTATE 26000)`
+  - 全APIエンドポイントで500 Internal Server Error
+- **解決**: 
+  - Postgres Dialectorで`PreferSimpleProtocol: true`を設定
+  - ドライバ側のPrepared Statementを完全に無効化
+  - コネクションプールを無料枠向けに調整（MaxIdleConns: 5, MaxOpenConns: 25）
+- **影響**: 本番環境での全API機能の完全復旧
+- **修正ファイル**: `internal/database/database.go`
+- **技術的詳細**: PgBouncerはプリペアドステートメントをサポートしないため、シンプルプロトコル使用が必須
+
 ## 📈 開発の成果
 
 ### 技術的成果
@@ -344,6 +359,6 @@ healthcheckTimeout = 30
 
 このドキュメントは、技術的な意思決定の背景と、問題解決の過程を記録しています。今後の機能拡張や類似プロジェクトの参考として活用してください。
 
-**最終更新**: 2025年8月31日（JSONB型変換エラー解決完了）
+**最終更新**: 2025年9月3日（GORM Prepared Statement重複エラー解決完了）
 **開発期間**: 約1日（フロントエンド → フルスタック化）  
 **技術レベル**: 初級〜中級向けフルスタック構成

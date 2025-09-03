@@ -243,7 +243,18 @@ Supabase Dashboard の **Table Editor** でデータが正常に保存されて�
 - `DATABASE_URL` の形式を確認
 - Supabase のデータベースパスワードを確認
 
-#### 4. ビルドエラー
+#### 4. GORM Prepared Statement重複エラー
+**症状**: 本番環境で全APIエンドポイントが500エラー
+**エラーメッセージ**:
+- `prepared statement "stmtcache_X" already exists (SQLSTATE 42P05)`
+- `prepared statement "stmtcache_X" does not exist (SQLSTATE 26000)`
+**原因**: Supabase PostgreSQL + PgBouncer環境でGORMのPrepared Statementが重複・消失
+**解決**:
+- `internal/database/database.go`で`PreferSimpleProtocol: true`を設定
+- コネクションプールを無料枠向けに調整
+- 詳細は`DEVELOPMENT_LOG.md`の「解決した技術的課題」セクションを参照
+
+#### 5. ビルドエラー
 **症状**: デプロイ時にビルドが失敗
 **解決**:
 - 依存関係のバージョンを確認 (`package.json`, `go.mod`)
