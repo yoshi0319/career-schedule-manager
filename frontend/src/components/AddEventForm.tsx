@@ -183,19 +183,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       return;
     }
 
-    // 他企業の候補時間帯との重複チェック（30分バッファ付き）
-    const allExistingCandidateSlots = events
-      .filter(event => event.status === 'candidate' && event.id !== editEvent?.id)
-      .flatMap(event => event.candidate_slots);
-    
-    for (const slot of allExistingCandidateSlots) {
-      const bufferedSlot = addBufferToTimeSlot(slot);
-      if (timeSlotsOverlap(newSlot, bufferedSlot)) {
-        setCandidateAddError("他の企業の候補時間帯と重複しています（前後30分を含む）。");
-        return;
-      }
-    }
-
     // 同一イベント内での候補時間帯重複チェック（バッファなし）
     for (const slot of otherSlots) {
       if (timeSlotsOverlap(newSlot, slot)) {
@@ -587,19 +574,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                     if (confirmedConflictResult.hasConflict) {
                       return;
                     }
-                    // 他企業の候補時間帯との重複チェック（30分バッファ付き）
-                    const allExistingCandidateSlots = events
-                      .filter(event => event.status === 'candidate')
-                      .flatMap(event => event.candidate_slots);
-                    
-                    for (const slot of allExistingCandidateSlots) {
-                      const bufferedSlot = addBufferToTimeSlot(slot);
-                      if (timeSlotsOverlap(newSlot, bufferedSlot)) {
-                        setCandidateAddError("他の企業の候補時間帯と重複しています（前後30分を含む）。");
-                        return;
-                      }
-                    }
-
                     // 同一イベント内での候補時間帯重複チェック（バッファなし）
                     for (const slot of candidateSlots) {
                       if (timeSlotsOverlap(newSlot, slot)) {

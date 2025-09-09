@@ -32,7 +32,7 @@ export const EventConfirmationModal = ({
   const selectedSlot = event.candidate_slots[selectedSlotIndex];
   const [interviewDuration, setInterviewDuration] = useState<number>(30); // デフォルト30分
   
-  // 選択された候補時間帯から予定時間の開始時刻オプションを生成（30分刻み）
+  // 選択された候補時間帯から予定時間の開始時刻オプションを生成（5分刻み）
   const generateStartTimeOptions = (slot: CandidateTimeSlot): string[] => {
     const options: string[] = [];
     const startTime = new Date(slot.start_time);
@@ -47,7 +47,7 @@ export const EventConfirmationModal = ({
         hour: '2-digit',
         minute: '2-digit'
       }));
-      currentTime.setMinutes(currentTime.getMinutes() + 30);
+      currentTime.setMinutes(currentTime.getMinutes() + 5);
     }
     
     return options;
@@ -161,7 +161,7 @@ export const EventConfirmationModal = ({
             <div>
               <Label className="text-base font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                予定開始時間を選択してください（30分刻み）
+                予定開始時間を選択してください（5分刻み）
               </Label>
               <div className="mt-3 space-y-2 max-h-40 overflow-y-auto p-3 border rounded-md">
                 {generateStartTimeOptions(selectedSlot).map((time, index) => (
