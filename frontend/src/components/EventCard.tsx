@@ -166,9 +166,34 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             {event.status === 'confirmed' && event.confirmed_slot ? (
-              <span className="font-medium text-confirmed">
-                {formatStartTimeWithDate(event.confirmed_slot)} 確定
-              </span>
+              <div className="space-y-1">
+                <span className="font-medium text-confirmed">
+                  {formatStartTimeWithDate(event.confirmed_slot)} 確定
+                </span>
+                <div className="text-sm text-muted-foreground text-left">
+                  {(() => {
+                    const startTime = event.confirmed_slot.start_time instanceof Date 
+                      ? event.confirmed_slot.start_time 
+                      : new Date(event.confirmed_slot.start_time);
+                    const endTime = event.confirmed_slot.end_time instanceof Date 
+                      ? event.confirmed_slot.end_time 
+                      : new Date(event.confirmed_slot.end_time);
+                    
+                    const startTimeStr = startTime.toLocaleTimeString('ja-JP', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    });
+                    const endTimeStr = endTime.toLocaleTimeString('ja-JP', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    });
+                    
+                    return `${startTimeStr}〜${endTimeStr}`;
+                  })()}
+                </div>
+              </div>
             ) : (
               <span>候補日 {event.candidate_slots.length}件</span>
             )}

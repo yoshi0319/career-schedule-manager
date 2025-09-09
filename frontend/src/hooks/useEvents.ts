@@ -38,8 +38,8 @@ export const useEvents = () => {
     },
     staleTime: 5 * 60 * 1000, // 5分間はキャッシュを使用
     gcTime: 10 * 60 * 1000, // 10分間メモリに保持
-    refetchOnWindowFocus: true, // ウィンドウフォーカス時の再取得を有効化
-    refetchOnMount: true, // コンポーネントマウント時の再取得を有効化
+    refetchOnWindowFocus: false, // ウィンドウフォーカス時の再取得を無効化（レート制限対策）
+    refetchOnMount: false, // コンポーネントマウント時の再取得を無効化（レート制限対策）
     enabled: !!user, // ユーザーがログインしている場合のみ実行
   })
 }
@@ -58,6 +58,8 @@ export const useCreateEvent = () => {
         if (!oldData) return [processEventDates(newEvent)]
         return [...oldData, processEventDates(newEvent)]
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['events'] })
       
       toast({
         title: "予定を追加しました",
@@ -88,6 +90,8 @@ export const useUpdateEvent = () => {
         if (!oldData) return oldData
         return oldData.map(e => e.id === updatedEvent.id ? processEventDates(updatedEvent) : e)
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['events'] })
       
       toast({
         title: "予定を更新しました",
@@ -122,6 +126,8 @@ export const useDeleteEvent = () => {
         title: "予定を削除しました",
         description: "予定が正常に削除されました。",
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['events'] })
     },
     onError: (error) => {
       toast({
@@ -155,6 +161,8 @@ export const useConfirmEvent = () => {
         title: "予定を確定しました",
         description: "予定が正常に確定されました。",
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['events'] })
     },
     onError: (error) => {
       toast({

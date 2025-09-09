@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Event, TimeSlot } from '@/types';
-import { formatTimeSlotWithDate, checkConfirmedEventConflict } from '@/lib/conflictDetection';
+import { Event, TimeSlot, CandidateTimeSlot, InterviewTimeSlot } from '@/types';
+import { formatTimeSlotWithDate, checkInterviewTimeConflict } from '@/lib/conflictDetection';
 import { Clock, Calendar, AlertTriangle } from 'lucide-react';
 
 interface EventConfirmationModalProps {
@@ -13,7 +13,7 @@ interface EventConfirmationModalProps {
   allEvents: Event[];
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (selectedSlot: TimeSlot) => void;
+  onConfirm: (selectedSlot: InterviewTimeSlot) => void;
   initialSelectedSlotIndex?: number;
 }
 
@@ -30,20 +30,24 @@ export const EventConfirmationModal = ({
   const [conflictError, setConflictError] = useState<string>('');
 
   const selectedSlot = event.candidate_slots[selectedSlotIndex];
+  const [interviewDuration, setInterviewDuration] = useState<number>(30); // デフォルト30分
   
-  // 選択された候補日の詳細時間オプションを生成（10分刻み）
-  const generateTimeOptions = (slot: TimeSlot): string[] => {
+  // 選択された候補時間帯から予定時間の開始時刻オプションを生成（5分刻み）
+  const generateStartTimeOptions = (slot: CandidateTimeSlot): string[] => {
     const options: string[] = [];
     const startTime = new Date(slot.start_time);
     const endTime = new Date(slot.end_time);
     
+    // 予定時間を考慮して終了時刻を調整
+    const adjustedEndTime = new Date(endTime.getTime() - interviewDuration * 60 * 1000);
+    
     let currentTime = new Date(startTime);
-    while (currentTime <= endTime) {
+    while (currentTime <= adjustedEndTime) {
       options.push(currentTime.toLocaleTimeString('ja-JP', {
         hour: '2-digit',
         minute: '2-digit'
       }));
-      currentTime.setMinutes(currentTime.getMinutes() + 10);
+      currentTime.setMinutes(currentTime.getMinutes() + 5);
     }
     
     return options;
@@ -51,22 +55,22 @@ export const EventConfirmationModal = ({
 
   const handleConfirm = () => {
     if (selectedSlot && selectedTime) {
-      // 選択された時間からTimeSlotを作成
+      // 選択された時間から予定時間を作成
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const confirmedStartTime = new Date(selectedSlot.start_time);
       confirmedStartTime.setHours(hours, minutes, 0, 0);
       
       const confirmedEndTime = new Date(confirmedStartTime);
-      confirmedEndTime.setMinutes(confirmedEndTime.getMinutes() + 30); // 30分の面接時間
+      confirmedEndTime.setMinutes(confirmedEndTime.getMinutes() + interviewDuration);
       
-      const confirmedSlot: TimeSlot = {
+      const confirmedSlot: InterviewTimeSlot = {
         start_time: confirmedStartTime,
         end_time: confirmedEndTime
       };
 
-      // 確定時の重複チェック（確定済みイベントのみ）
+      // 確定時の重複チェック（確定済み予定時間とのみ）
       const otherEvents = allEvents.filter(e => e.id !== event.id);
-      const conflictResult = checkConfirmedEventConflict(confirmedSlot, otherEvents);
+      const conflictResult = checkInterviewTimeConflict(confirmedSlot, otherEvents);
       
       if (conflictResult.hasConflict) {
         const conflictingEvent = conflictResult.conflictingEvents[0];
@@ -139,15 +143,28 @@ export const EventConfirmationModal = ({
             </RadioGroup>
           </div>
 
-          {/* 詳細時間選択 */}
+          {/* 予定時間表示 */}
           {selectedSlot && (
             <div>
               <Label className="text-base font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                開始時間を選択してください（10分刻み）
+                予定時間
+              </Label>
+              <div className="mt-2 text-sm text-muted-foreground">
+                {interviewDuration}分
+              </div>
+            </div>
+          )}
+
+          {/* 開始時間選択 */}
+          {selectedSlot && (
+            <div>
+              <Label className="text-base font-medium flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                予定開始時間を選択してください（5分刻み）
               </Label>
               <div className="mt-3 space-y-2 max-h-40 overflow-y-auto p-3 border rounded-md">
-                {generateTimeOptions(selectedSlot).map((time, index) => (
+                {generateStartTimeOptions(selectedSlot).map((time, index) => (
                   <Button
                     key={index}
                     type="button"
@@ -162,11 +179,20 @@ export const EventConfirmationModal = ({
               </div>
               {selectedTime && (
                 <div className="mt-2 text-sm text-muted-foreground">
-                  選択時間: {selectedSlot.start_time.toLocaleDateString('ja-JP', {
+                  選択した時間: {selectedSlot.start_time.toLocaleDateString('ja-JP', {
                     month: 'numeric',
                     day: 'numeric',
                     weekday: 'short'
-                  })} {selectedTime}〜
+                  })} {selectedTime}〜{(() => {
+                    const [hours, minutes] = selectedTime.split(':').map(Number);
+                    const startTime = new Date(selectedSlot.start_time);
+                    startTime.setHours(hours, minutes, 0, 0);
+                    const endTime = new Date(startTime.getTime() + interviewDuration * 60 * 1000);
+                    return endTime.toLocaleTimeString('ja-JP', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    });
+                  })()}
                 </div>
               )}
             </div>

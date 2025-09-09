@@ -254,6 +254,15 @@ Supabase Dashboard の **Table Editor** でデータが正常に保存されて�
 - コネクションプールを無料枠向けに調整
 - 詳細は`DEVELOPMENT_LOG.md`の「解決した技術的課題」セクションを参照
 
+#### 6. JSONBへの保存時に500エラー
+**症状**: 予定作成/確定で500 Internal Server Error
+**エラーメッセージ**: `unable to encode json.RawMessage ... into text format for unknown type (OID 0)`
+**原因**: `json.RawMessage` をそのままJSONBへ保存
+**解決**:
+- モデルを `gorm.io/datatypes.JSON` に変更
+- 依存追加: `gorm.io/datatypes`
+- ハンドラの入力型も `datatypes.JSON` に統一
+
 #### 5. ビルドエラー
 **症状**: デプロイ時にビルドが失敗
 **解決**:

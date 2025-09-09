@@ -18,6 +18,18 @@ export interface TimeSlot {
   end_time: Date;
 }
 
+// 候補時間帯（企業が提示した調整可能な時間範囲）
+export interface CandidateTimeSlot {
+  start_time: Date;
+  end_time: Date;
+}
+
+// 面接時間（候補時間帯から選んだ具体的な面接時間）
+export interface InterviewTimeSlot {
+  start_time: Date;
+  end_time: Date;
+}
+
 export interface Event {
   id: string;
   company_id: string;
@@ -25,8 +37,8 @@ export interface Event {
   title: string;
   type: EventType;
   status: EventStatus;
-  candidate_slots: TimeSlot[];
-  confirmed_slot?: TimeSlot;
+  candidate_slots: CandidateTimeSlot[];  // 候補時間帯
+  confirmed_slot?: InterviewTimeSlot;    // 確定した面接時間
   location?: string;
   is_online: boolean;
   notes?: string;

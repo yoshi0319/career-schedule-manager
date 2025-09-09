@@ -27,6 +27,7 @@ class ApiClient {
           ...options.headers,
           'Accept': 'application/json',
         },
+        cache: 'no-store',
         // リクエスト最適化
         keepalive: true, // ページ遷移時もリクエスト完了を保証
       })
