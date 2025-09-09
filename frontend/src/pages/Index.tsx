@@ -155,7 +155,11 @@ const Index = () => {
     if (confirmed_slot) {
       confirmEventMutation.mutate({ id: eventId, confirmedSlot: confirmed_slot, status });
     } else {
-      updateEventMutation.mutate({ id: eventId, event: { status } });
+      if (status === 'candidate' || status === 'rejected') {
+        updateEventMutation.mutate({ id: eventId, event: { status, confirmed_slot: null as any } });
+      } else {
+        updateEventMutation.mutate({ id: eventId, event: { status } });
+      }
     }
   };
 
