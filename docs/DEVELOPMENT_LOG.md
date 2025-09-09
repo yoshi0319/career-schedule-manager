@@ -307,6 +307,17 @@ healthcheckTimeout = 30
 - **修正ファイル**: `internal/database/database.go`
 - **技術的詳細**: PgBouncerはプリペアドステートメントをサポートしないため、シンプルプロトコル使用が必須
 
+### 7. JSONB へのエンコード失敗（500 Internal Server Error）
+- **課題**: 予定作成時に500エラー
+- **サーバーログ**: `unable to encode json.RawMessage ... into text format for unknown type (OID 0): cannot find encode plan`
+- **原因**: `encoding/json`.RawMessage をそのまま GORM/pgx 経由で JSONB に保存すると型エンコード計画が見つからず失敗
+- **解決**:
+  - モデルの JSONB フィールドを `gorm.io/datatypes.JSON` に変更（`Event.CandidateSlots`, `Event.ConfirmedSlot`）
+  - 確定API入力型も `datatypes.JSON` に合わせて修正
+  - 依存追加: `gorm.io/datatypes`
+- **影響**: 予定の作成・更新・確定が安定して保存可能に
+- **修正ファイル**: `internal/models/models.go`, `internal/handlers/events.go`, `go.mod`
+
 ## 📈 開発の成果
 
 ### 技術的成果

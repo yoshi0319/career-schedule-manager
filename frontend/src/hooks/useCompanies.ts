@@ -44,6 +44,8 @@ export const useCreateCompany = () => {
         if (!oldData) return [newCompany]
         return [...oldData, newCompany]
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       
       toast({
         title: "企業を追加しました",
@@ -74,6 +76,8 @@ export const useUpdateCompany = () => {
         if (!oldData) return oldData
         return oldData.map(c => c.id === updatedCompany.id ? updatedCompany : c)
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       
       toast({
         title: "企業を更新しました",
@@ -109,6 +113,8 @@ export const useDeleteCompany = () => {
         if (!oldData) return oldData
         return oldData.filter(e => e.company_id !== deletedId)
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       
       toast({
         title: "企業を削除しました",
