@@ -65,10 +65,11 @@ func main() {
 	}
 	r := gin.Default()
 
-	// レスポンス最適化設定
+	// キャッシュ無効化（常に最新を取得）
 	r.Use(func(c *gin.Context) {
-		// キャッシュ制御
-		c.Header("Cache-Control", "public, max-age=300")
+		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
 		c.Next()
 	})
 

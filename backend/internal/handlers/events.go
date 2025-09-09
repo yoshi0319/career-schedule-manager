@@ -1,17 +1,24 @@
 package handlers
 
 import (
-	"encoding/json"
+	"html"
 	"net/http"
+	"strings"
 
 	"career-schedule-api/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
 func GetEvents(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		userID := c.GetString("user_id")
 
 		var events []models.Event
@@ -30,6 +37,10 @@ func GetEvents(db *gorm.DB) gin.HandlerFunc {
 
 func CreateEvent(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		userID := c.GetString("user_id")
 
 		var event models.Event
@@ -38,7 +49,20 @@ func CreateEvent(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// 入力値サニタイゼーション
+		event.CompanyName = html.EscapeString(strings.TrimSpace(event.CompanyName))
+		event.Title = html.EscapeString(strings.TrimSpace(event.Title))
+		event.Location = html.EscapeString(strings.TrimSpace(event.Location))
+		event.Notes = html.EscapeString(strings.TrimSpace(event.Notes))
+
 		event.UserID = userID
+
+		// バリデーション
+		validate := validator.New()
+		if err := validate.Struct(&event); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed: " + err.Error()})
+			return
+		}
 
 		if err := db.Create(&event).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
@@ -51,6 +75,10 @@ func CreateEvent(db *gorm.DB) gin.HandlerFunc {
 
 func GetEvent(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		userID := c.GetString("user_id")
 		eventID := c.Param("id")
 
@@ -70,6 +98,10 @@ func GetEvent(db *gorm.DB) gin.HandlerFunc {
 
 func UpdateEvent(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		userID := c.GetString("user_id")
 		eventID := c.Param("id")
 
@@ -88,6 +120,19 @@ func UpdateEvent(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// 入力値サニタイゼーション
+		event.CompanyName = html.EscapeString(strings.TrimSpace(event.CompanyName))
+		event.Title = html.EscapeString(strings.TrimSpace(event.Title))
+		event.Location = html.EscapeString(strings.TrimSpace(event.Location))
+		event.Notes = html.EscapeString(strings.TrimSpace(event.Notes))
+
+		// バリデーション
+		validate := validator.New()
+		if err := validate.Struct(&event); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed: " + err.Error()})
+			return
+		}
+
 		if err := db.Save(&event).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update event"})
 			return
@@ -99,6 +144,10 @@ func UpdateEvent(db *gorm.DB) gin.HandlerFunc {
 
 func DeleteEvent(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		userID := c.GetString("user_id")
 		eventID := c.Param("id")
 
@@ -119,6 +168,10 @@ func DeleteEvent(db *gorm.DB) gin.HandlerFunc {
 
 func ConfirmEvent(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
 		userID := c.GetString("user_id")
 		eventID := c.Param("id")
 
@@ -133,8 +186,8 @@ func ConfirmEvent(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var updateData struct {
-			ConfirmedSlot json.RawMessage `json:"confirmed_slot"`
-			Status        string          `json:"status"`
+			ConfirmedSlot datatypes.JSON `json:"confirmed_slot"`
+			Status        string         `json:"status"`
 		}
 
 		if err := c.ShouldBindJSON(&updateData); err != nil {
