@@ -64,7 +64,7 @@ export function checkConfirmedEventConflict(
   return checkInterviewTimeConflict(newSlot, existingEvents);
 }
 
-function timeSlotsOverlap(slot1: TimeSlot, slot2: TimeSlot): boolean {
+export function timeSlotsOverlap(slot1: TimeSlot, slot2: TimeSlot): boolean {
   return slot1.start_time < slot2.end_time && slot1.end_time > slot2.start_time;
 }
 

@@ -88,8 +88,13 @@ func main() {
 	corsConfig.AllowCredentials = true
 	r.Use(cors.New(corsConfig))
 
-	// Rate limiting middleware
-	limiter := rate.NewLimiter(rate.Every(time.Minute), 100) // 100 requests per minute
+	// Rate limiting middleware (開発環境では緩和)
+	var limiter *rate.Limiter
+	if cfg.GinMode == "release" {
+		limiter = rate.NewLimiter(rate.Every(time.Minute), 100) // 本番環境: 100 requests per minute
+	} else {
+		limiter = rate.NewLimiter(rate.Every(time.Minute), 1000) // 開発環境: 1000 requests per minute
+	}
 	r.Use(func(c *gin.Context) {
 		if !limiter.Allow() {
 			c.JSON(429, gin.H{"error": "Rate limit exceeded"})
