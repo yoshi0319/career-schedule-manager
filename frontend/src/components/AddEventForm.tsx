@@ -13,8 +13,8 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, CalendarPlus, X, AlertTriangle, Calendar, Edit, Check } from 'lucide-react';
-import { Company, Event, EventType, TimeSlot } from '@/types';
-import { checkTimeSlotConflict, checkConfirmedEventConflict, formatTimeSlotWithDate, addBufferToTimeSlot } from '@/lib/conflictDetection';
+import { Company, Event, EventType, TimeSlot, CandidateTimeSlot, InterviewTimeSlot } from '@/types';
+import { checkCandidateTimeSlotConflict, checkInterviewTimeConflict, checkConfirmedEventConflict, formatTimeSlotWithDate, addBufferToTimeSlot } from '@/lib/conflictDetection';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -26,6 +26,7 @@ const eventSchema = z.object({
   isOnline: z.boolean(),
   location: z.string().optional(),
   notes: z.string().optional(),
+  interviewDuration: z.number().min(15, '予定時間は15分以上にしてください').max(300, '予定時間は300分以下にしてください'),
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -46,17 +47,28 @@ const eventTypeOptions = [
   { value: 'final_interview', label: '最終面接' },
 ];
 
+const interviewDurationOptions = [
+  { value: 30, label: '30分' },
+  { value: 45, label: '45分' },
+  { value: 60, label: '60分' },
+  { value: 'custom', label: 'その他' },
+];
+
 export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdateEvent, onClose }: AddEventFormProps) => {
   const [isOpen, setIsOpen] = useState(!!editEvent);
-  const [candidateSlots, setCandidateSlots] = useState<TimeSlot[]>(editEvent?.candidate_slots || []);
+  const [candidateSlots, setCandidateSlots] = useState<CandidateTimeSlot[]>(editEvent?.candidate_slots || []);
   const [startTimeInput, setStartTimeInput] = useState<Date | undefined>(undefined);
   const [endTimeInput, setEndTimeInput] = useState<Date | undefined>(undefined);
   const [conflicts, setConflicts] = useState<{ hasConflict: boolean; conflictingEvents: Event[] }>({ hasConflict: false, conflictingEvents: [] });
   const [candidateAddError, setCandidateAddError] = useState<string>("");
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
+  const [showEditSlotModal, setShowEditSlotModal] = useState(false);
   const [showAddSlotModal, setShowAddSlotModal] = useState(false);
   const [modalStartTime, setModalStartTime] = useState<Date | undefined>(undefined);
   const [modalEndTime, setModalEndTime] = useState<Date | undefined>(undefined);
+  const [modalInterviewDuration, setModalInterviewDuration] = useState<number>(30);
+  const [isCustomDuration, setIsCustomDuration] = useState(false);
+  const [customDuration, setCustomDuration] = useState<number>(30);
 
   const isEditMode = !!editEvent;
   const isConfirmed = isEditMode && editEvent?.status === 'confirmed';
@@ -70,6 +82,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       isOnline: editEvent?.is_online || false,
       location: editEvent?.location || '',
       notes: editEvent?.notes || '',
+      interviewDuration: 30, // デフォルト30分
     },
   });
 
@@ -86,17 +99,22 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     return a.start_time < b.end_time && a.end_time > b.start_time;
   }
 
-  // 予定一覧に表示されている企業の候補時間を全て取得（確定済みイベントは除外）
-  const getAllExistingCandidateSlots = (): Array<{ slot: TimeSlot; event: Event }> => {
-    const allSlots: Array<{ slot: TimeSlot; event: Event }> = [];
-    events.forEach(event => {
-      if (event.status === 'candidate') {
-        event.candidate_slots.forEach(slot => {
-          allSlots.push({ slot, event });
-        });
-      }
-    });
-    return allSlots;
+  // 予定時間に基づいて終了時間を自動計算
+  const calculateEndTime = (startTime: Date, duration: number): Date => {
+    return new Date(startTime.getTime() + duration * 60000); // 分をミリ秒に変換
+  };
+
+  // 現在の予定時間を取得（カスタムの場合はカスタム値、そうでなければ選択値）
+  const getCurrentDuration = (): number => {
+    const formDuration = form.watch('interviewDuration');
+    return isCustomDuration ? customDuration : formDuration;
+  };
+
+  // 候補時間帯の追加時の競合チェック（確定済み予定時間とのみ）
+  const checkCandidateSlotConflict = (newSlot: TimeSlot) => {
+    const confirmedConflictResult = checkCandidateTimeSlotConflict(newSlot, events);
+    setConflicts(confirmedConflictResult);
+    return confirmedConflictResult.hasConflict;
   };
 
   const addCandidateSlot = () => {
@@ -104,27 +122,18 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     if (!startTimeInput || !endTimeInput) return;
     if (!(startTimeInput < endTimeInput)) return;
 
-    const newSlot: TimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
+    const newSlot: CandidateTimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
 
-    const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
-    setConflicts(confirmedConflictResult);
-    if (confirmedConflictResult.hasConflict) {
+    // 確定済み面接時間との競合のみをチェック（候補時間帯は競合判定に使わない）
+    if (checkCandidateSlotConflict(newSlot)) {
+      setCandidateAddError("この時間帯は確定済みの予定時間と重複しています。");
       return;
     }
 
-    const existingCandidateSlots = getAllExistingCandidateSlots();
-    for (const { slot, event } of existingCandidateSlots) {
-      const buffered = addBufferToTimeSlot(slot);
-      if (timeSlotsOverlap(newSlot, buffered)) {
-        setCandidateAddError(`予定一覧に表示されている企業「${event.company_name}」の候補時間と重複しています（前後30分を含む）。`);
-        return;
-      }
-    }
-
+    // 同一イベント内での候補時間帯重複チェック
     for (const slot of candidateSlots) {
-      const buffered = addBufferToTimeSlot(slot);
-      if (timeSlotsOverlap(newSlot, buffered)) {
-        setCandidateAddError("既に追加済みの候補日の前後30分内と重複しています。");
+      if (timeSlotsOverlap(newSlot, slot)) {
+        setCandidateAddError("既に追加済みの候補時間帯と重複しています。");
         return;
       }
     }
@@ -143,11 +152,12 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   };
 
   const startEditSlot = (index: number) => {
-    const slot = candidateSlots[index];
-    setStartTimeInput(slot.start_time);
-    setEndTimeInput(slot.end_time);
     setEditingSlotIndex(index);
-    setCandidateAddError("");
+    const slot = candidateSlots[index];
+    setModalStartTime(new Date(slot.start_time));
+    setModalEndTime(new Date(slot.end_time));
+    setModalInterviewDuration(Math.round((slot.end_time.getTime() - slot.start_time.getTime()) / 60000));
+    setShowEditSlotModal(true);
   };
 
   const cancelEditSlot = () => {
@@ -159,10 +169,11 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
 
   const updateCandidateSlot = () => {
     setCandidateAddError("");
-    if (!startTimeInput || !endTimeInput || editingSlotIndex === null) return;
-    if (!(startTimeInput < endTimeInput)) return;
+    if (!modalStartTime || !modalEndTime || editingSlotIndex === null) return;
+    if (!(modalStartTime < modalEndTime)) return;
 
-    const newSlot: TimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
+    // 候補時間帯をそのまま保存（バッファは追加しない）
+    const newSlot: TimeSlot = { start_time: modalStartTime, end_time: modalEndTime };
 
     const otherSlots = candidateSlots.filter((_, i) => i !== editingSlotIndex);
 
@@ -172,19 +183,23 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       return;
     }
 
-    const existingCandidateSlots = getAllExistingCandidateSlots();
-    for (const { slot, event } of existingCandidateSlots) {
-      const buffered = addBufferToTimeSlot(slot);
-      if (timeSlotsOverlap(newSlot, buffered)) {
-        setCandidateAddError(`予定一覧に表示されている企業「${event.company_name}」の候補時間と重複しています（前後30分を含む）。`);
+    // 他企業の候補時間帯との重複チェック（30分バッファ付き）
+    const allExistingCandidateSlots = events
+      .filter(event => event.status === 'candidate' && event.id !== editEvent?.id)
+      .flatMap(event => event.candidate_slots);
+    
+    for (const slot of allExistingCandidateSlots) {
+      const bufferedSlot = addBufferToTimeSlot(slot);
+      if (timeSlotsOverlap(newSlot, bufferedSlot)) {
+        setCandidateAddError("他の企業の候補時間帯と重複しています（前後30分を含む）。");
         return;
       }
     }
 
+    // 同一イベント内での候補時間帯重複チェック（バッファなし）
     for (const slot of otherSlots) {
-      const buffered = addBufferToTimeSlot(slot);
-      if (timeSlotsOverlap(newSlot, buffered)) {
-        setCandidateAddError("他の候補日の前後30分内と重複しています。");
+      if (timeSlotsOverlap(newSlot, slot)) {
+        setCandidateAddError("他の候補時間帯と重複しています。");
         return;
       }
     }
@@ -195,9 +210,10 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       return updated.sort((a, b) => a.start_time.getTime() - b.start_time.getTime());
     });
 
-    setStartTimeInput(undefined);
-    setEndTimeInput(undefined);
+    setModalStartTime(undefined);
+    setModalEndTime(undefined);
     setEditingSlotIndex(null);
+    setShowEditSlotModal(false);
   };
 
   const onSubmit = (data: EventFormData) => {
@@ -247,6 +263,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={isEditMode ? handleClose : setIsOpen}>
       {!isEditMode && (
         <DialogTrigger asChild>
@@ -331,6 +348,61 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
 
             <FormField
               control={form.control}
+              name="interviewDuration"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>予定時間</FormLabel>
+                  <div className="space-y-2">
+                    <Select 
+                      value={isCustomDuration ? 'custom' : field.value.toString()} 
+                      onValueChange={(value) => {
+                        if (value === 'custom') {
+                          setIsCustomDuration(true);
+                        } else {
+                          setIsCustomDuration(false);
+                          field.onChange(parseInt(value));
+                        }
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {interviewDurationOptions.map(option => (
+                          <SelectItem key={option.value} value={option.value.toString()}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isCustomDuration && (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="15"
+                          max="300"
+                          value={customDuration}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 60;
+                            setCustomDuration(value);
+                            field.onChange(value);
+                          }}
+                          placeholder="分"
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">分</span>
+                      </div>
+                    )}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="isOnline"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
@@ -366,32 +438,17 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                 <p className="text-sm text-muted-foreground mt-1">面接可能な日時を複数設定してください（5分刻みで選択可能）</p>
               </div>
 
-              {editingSlotIndex !== null ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">開始時間</label>
-                    <DateTimePicker date={startTimeInput} onDateChange={setStartTimeInput} placeholder="開始時間を選択" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">終了時間</label>
-                    <DateTimePicker date={endTimeInput} onDateChange={setEndTimeInput} placeholder="終了時間を選択" />
-                  </div>
-                </div>
-              ) : null}
-
-              {editingSlotIndex !== null ? (
-                <div className="flex gap-2">
-                  <Button type="button" onClick={updateCandidateSlot} disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput} className="flex-1">
-                    <Check className="h-4 w-4 mr-2" />
-                    更新
-                  </Button>
-                  <Button type="button" variant="outline" onClick={cancelEditSlot} className="flex-1">
-                    <X className="h-4 w-4 mr-2" />
-                    キャンセル
-                  </Button>
-                </div>
-              ) : (
-                <Button type="button" variant="outline" onClick={() => setShowAddSlotModal(true)} disabled={isConfirmed} className="w-full">
+              {editingSlotIndex === null && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setModalInterviewDuration(getCurrentDuration());
+                    setShowAddSlotModal(true);
+                  }} 
+                  disabled={isConfirmed} 
+                  className="w-full"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   時間枠を追加
                 </Button>
@@ -451,20 +508,16 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                       </div>
                       <div className="space-y-2">
                         {candidateSlots.map((slot, index) => (
-                          <div key={index} className={cn(
-                            "flex items-center justify-between p-3 rounded-lg border",
-                            editingSlotIndex === index ? "bg-blue-50 border-blue-200" : "bg-white border-green-200"
-                          )}>
+                          <div key={index} className="flex items-center justify-between p-3 rounded-lg border bg-white border-green-200">
                             <div className="flex items-center gap-2">
-                              <Calendar className={cn("h-4 w-4", editingSlotIndex === index ? "text-blue-600" : "text-green-600")} />
+                              <Calendar className="h-4 w-4 text-green-600" />
                               <span className="text-sm font-medium">{formatTimeSlotWithDate(slot)}</span>
-                              {editingSlotIndex === index && <Badge variant="secondary" className="text-xs">編集中</Badge>}
                             </div>
                             <div className="flex items-center gap-1">
-                              <Button type="button" variant="ghost" size="sm" onClick={() => startEditSlot(index)} disabled={isConfirmed || (editingSlotIndex !== null && editingSlotIndex !== index)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                              <Button type="button" variant="ghost" size="sm" onClick={() => startEditSlot(index)} disabled={isConfirmed} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button type="button" variant="ghost" size="sm" onClick={() => { if (editingSlotIndex !== null) { cancelEditSlot() } else { removeCandidateSlot(index) } }} disabled={isConfirmed || (editingSlotIndex !== null && editingSlotIndex !== index)} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                              <Button type="button" variant="ghost" size="sm" onClick={() => removeCandidateSlot(index)} disabled={isConfirmed} className="text-red-600 hover:text-red-700 hover:bg-red-50">
                                 <X className="h-4 w-4" />
                               </Button>
                             </div>
@@ -492,31 +545,31 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                 </DialogHeader>
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">開始時間</label>
+                    <label className="text-sm font-medium text-muted-foreground">予定開始時間</label>
                     <DateTimePicker 
                       date={modalStartTime} 
                       onDateChange={(date) => {
                         setModalStartTime(date);
                         if (date && !modalEndTime) {
-                          // 開始時間が設定され、終了時間が未設定の場合は同じ日時に設定
-                          setModalEndTime(date);
+                          // 予定開始時間が設定され、予定終了時間が未設定の場合は予定時間に基づいて自動計算
+                          setModalEndTime(calculateEndTime(date, modalInterviewDuration));
                         }
                       }} 
-                      placeholder="開始時間を選択" 
+                      placeholder="予定開始時間を選択" 
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground">終了時間</label>
+                    <label className="text-sm font-medium text-muted-foreground">予定終了時間</label>
                     <DateTimePicker 
                       date={modalEndTime} 
                       onDateChange={(date) => {
                         setModalEndTime(date);
                         if (date && !modalStartTime) {
-                          // 終了時間が設定され、開始時間が未設定の場合は同じ日時に設定
-                          setModalStartTime(date);
+                          // 予定終了時間が設定され、予定開始時間が未設定の場合は予定時間分戻して予定開始時間を設定
+                          setModalStartTime(new Date(date.getTime() - modalInterviewDuration * 60000));
                         }
                       }} 
-                      placeholder="終了時間を選択" 
+                      placeholder="予定終了時間を選択" 
                     />
                   </div>
                 </div>
@@ -526,24 +579,31 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                     setCandidateAddError("");
                     if (!modalStartTime || !modalEndTime) return;
                     if (!(modalStartTime < modalEndTime)) return;
+                    
+                    // 候補時間帯をそのまま保存（バッファは追加しない）
                     const newSlot: TimeSlot = { start_time: modalStartTime, end_time: modalEndTime };
                     const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
                     setConflicts(confirmedConflictResult);
                     if (confirmedConflictResult.hasConflict) {
                       return;
                     }
-                    const existingCandidateSlots = getAllExistingCandidateSlots();
-                    for (const { slot, event } of existingCandidateSlots) {
-                      const buffered = addBufferToTimeSlot(slot);
-                      if (timeSlotsOverlap(newSlot, buffered)) {
-                        setCandidateAddError(`予定一覧に表示されている企業「${event.company_name}」の候補時間と重複しています（前後30分を含む）。`);
+                    // 他企業の候補時間帯との重複チェック（30分バッファ付き）
+                    const allExistingCandidateSlots = events
+                      .filter(event => event.status === 'candidate')
+                      .flatMap(event => event.candidate_slots);
+                    
+                    for (const slot of allExistingCandidateSlots) {
+                      const bufferedSlot = addBufferToTimeSlot(slot);
+                      if (timeSlotsOverlap(newSlot, bufferedSlot)) {
+                        setCandidateAddError("他の企業の候補時間帯と重複しています（前後30分を含む）。");
                         return;
                       }
                     }
+
+                    // 同一イベント内での候補時間帯重複チェック（バッファなし）
                     for (const slot of candidateSlots) {
-                      const buffered = addBufferToTimeSlot(slot);
-                      if (timeSlotsOverlap(newSlot, buffered)) {
-                        setCandidateAddError("既に追加済みの候補日の前後30分内と重複しています。");
+                      if (timeSlotsOverlap(newSlot, slot)) {
+                        setCandidateAddError("既に追加済みの候補時間帯と重複しています。");
                         return;
                       }
                     }
@@ -584,5 +644,56 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* 編集モーダル */}
+    <Dialog open={showEditSlotModal} onOpenChange={setShowEditSlotModal}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>候補時間を編集</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">予定開始時間</label>
+            <DateTimePicker 
+              date={modalStartTime} 
+              onDateChange={(date) => {
+                setModalStartTime(date);
+                if (date && !modalEndTime) {
+                  setModalEndTime(calculateEndTime(date, modalInterviewDuration));
+                }
+              }} 
+              placeholder="予定開始時間を選択" 
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">予定終了時間</label>
+            <DateTimePicker 
+              date={modalEndTime} 
+              onDateChange={(date) => {
+                setModalEndTime(date);
+                if (date && !modalStartTime) {
+                  setModalStartTime(new Date(date.getTime() - modalInterviewDuration * 60000));
+                }
+              }} 
+              placeholder="予定終了時間を選択" 
+            />
+          </div>
+          {candidateAddError && (
+            <Alert className="border-destructive bg-destructive/5">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <AlertDescription className="text-destructive">
+                {candidateAddError}
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+        <div className="flex gap-2 pt-2">
+          <Button variant="outline" onClick={() => setShowEditSlotModal(false)} className="flex-1">キャンセル</Button>
+          <Button onClick={updateCandidateSlot} className="flex-1">更新</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
+
