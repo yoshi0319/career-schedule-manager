@@ -12,9 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, CalendarPlus, X, AlertTriangle, Calendar, Edit, Check } from 'lucide-react';
-import { Company, Event, EventType, TimeSlot, CandidateTimeSlot, InterviewTimeSlot } from '@/types';
-import { checkCandidateTimeSlotConflict, checkInterviewTimeConflict, checkConfirmedEventConflict, formatTimeSlotWithDate, addBufferToTimeSlot, timeSlotsOverlap } from '@/lib/conflictDetection';
+import { Plus, CalendarPlus, X, AlertTriangle, Calendar, Edit } from 'lucide-react';
+import { Company, Event, EventType, TimeSlot, CandidateTimeSlot } from '@/types';
+import { checkCandidateTimeSlotConflict, formatTimeSlotWithDate, addBufferToTimeSlot } from '@/lib/conflictDetection';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -154,7 +154,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       }
     }
 
-
     setCandidateSlots(prev =>
       [...prev, newSlot].sort((a, b) => a.start_time.getTime() - b.start_time.getTime())
     );
@@ -229,7 +228,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
         return;
       }
     }
-
 
     setCandidateSlots(prev => {
       const updated = [...prev];
