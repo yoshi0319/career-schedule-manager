@@ -54,8 +54,12 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   const [conflicts, setConflicts] = useState<{ hasConflict: boolean; conflictingEvents: Event[] }>({ hasConflict: false, conflictingEvents: [] });
   const [candidateAddError, setCandidateAddError] = useState<string>("");
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
+  const [showAddSlotModal, setShowAddSlotModal] = useState(false);
+  const [modalStartTime, setModalStartTime] = useState<Date | undefined>(undefined);
+  const [modalEndTime, setModalEndTime] = useState<Date | undefined>(undefined);
 
   const isEditMode = !!editEvent;
+  const isConfirmed = isEditMode && editEvent?.status === 'confirmed';
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
@@ -85,8 +89,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   // 予定一覧に表示されている企業の候補時間を全て取得（確定済みイベントは除外）
   const getAllExistingCandidateSlots = (): Array<{ slot: TimeSlot; event: Event }> => {
     const allSlots: Array<{ slot: TimeSlot; event: Event }> = [];
-    
-    // 既存のイベントから候補時間を取得（candidateステータスのみ）
     events.forEach(event => {
       if (event.status === 'candidate') {
         event.candidate_slots.forEach(slot => {
@@ -94,7 +96,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
         });
       }
     });
-    
     return allSlots;
   };
 
@@ -105,14 +106,12 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
 
     const newSlot: TimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
 
-    // 1) 確定済みイベントとの競合（前後30分含む）
     const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
     setConflicts(confirmedConflictResult);
     if (confirmedConflictResult.hasConflict) {
       return;
     }
 
-    // 2) 候補中の他企業の予定との競合（前後30分含む）
     const existingCandidateSlots = getAllExistingCandidateSlots();
     for (const { slot, event } of existingCandidateSlots) {
       const buffered = addBufferToTimeSlot(slot);
@@ -122,7 +121,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       }
     }
 
-    // 3) 既に追加済みの候補日との競合（前後30分含む）
     for (const slot of candidateSlots) {
       const buffered = addBufferToTimeSlot(slot);
       if (timeSlotsOverlap(newSlot, buffered)) {
@@ -131,7 +129,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       }
     }
 
-    // 追加し、日時昇順に並べ替える
     setCandidateSlots(prev =>
       [...prev, newSlot].sort((a, b) => a.start_time.getTime() - b.start_time.getTime())
     );
@@ -167,17 +164,14 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
 
     const newSlot: TimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
 
-    // 編集中のスロット以外をチェック対象にする
     const otherSlots = candidateSlots.filter((_, i) => i !== editingSlotIndex);
-    
-    // 1) 確定済みイベントとの競合（前後30分含む）
+
     const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
     setConflicts(confirmedConflictResult);
     if (confirmedConflictResult.hasConflict) {
       return;
     }
 
-    // 2) 候補中の他企業の予定との競合（前後30分含む）
     const existingCandidateSlots = getAllExistingCandidateSlots();
     for (const { slot, event } of existingCandidateSlots) {
       const buffered = addBufferToTimeSlot(slot);
@@ -187,7 +181,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       }
     }
 
-    // 3) 他の候補日との競合（編集中を除く）
     for (const slot of otherSlots) {
       const buffered = addBufferToTimeSlot(slot);
       if (timeSlotsOverlap(newSlot, buffered)) {
@@ -196,13 +189,12 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       }
     }
 
-    // 更新処理
     setCandidateSlots(prev => {
       const updated = [...prev];
       updated[editingSlotIndex] = newSlot;
       return updated.sort((a, b) => a.start_time.getTime() - b.start_time.getTime());
     });
-    
+
     setStartTimeInput(undefined);
     setEndTimeInput(undefined);
     setEditingSlotIndex(null);
@@ -234,12 +226,10 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     } else {
       onAddEvent(eventData);
     }
-    
     handleClose();
   };
 
   const handleClose = () => {
-    // Reset form
     if (!isEditMode) {
       form.reset();
       setCandidateSlots([]);
@@ -266,7 +256,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
           </Button>
         </DialogTrigger>
       )}
-      
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -346,15 +335,10 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">
-                      オンライン開催
-                    </FormLabel>
+                    <FormLabel className="text-base">オンライン開催</FormLabel>
                   </div>
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </FormItem>
               )}
@@ -379,62 +363,40 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
             <div className="space-y-4">
               <div>
                 <FormLabel className="text-base font-medium">候補日程</FormLabel>
-                <p className="text-sm text-muted-foreground mt-1">
-                  面接可能な日時を複数設定してください（5分刻みで選択可能）
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">面接可能な日時を複数設定してください（5分刻みで選択可能）</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">開始時間</label>
-                  <DateTimePicker
-                    date={startTimeInput}
-                    onDateChange={setStartTimeInput}
-                    placeholder="開始時間を選択"
-                  />
+
+              {editingSlotIndex !== null ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">開始時間</label>
+                    <DateTimePicker date={startTimeInput} onDateChange={setStartTimeInput} placeholder="開始時間を選択" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">終了時間</label>
+                    <DateTimePicker date={endTimeInput} onDateChange={setEndTimeInput} placeholder="終了時間を選択" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">終了時間</label>
-                  <DateTimePicker
-                    date={endTimeInput}
-                    onDateChange={setEndTimeInput}
-                    placeholder="終了時間を選択"
-                  />
-                </div>
-              </div>
+              ) : null}
+
               {editingSlotIndex !== null ? (
                 <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={updateCandidateSlot}
-                    disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput}
-                    className="flex-1"
-                  >
+                  <Button type="button" onClick={updateCandidateSlot} disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput} className="flex-1">
                     <Check className="h-4 w-4 mr-2" />
                     更新
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={cancelEditSlot}
-                    className="flex-1"
-                  >
+                  <Button type="button" variant="outline" onClick={cancelEditSlot} className="flex-1">
                     <X className="h-4 w-4 mr-2" />
                     キャンセル
                   </Button>
                 </div>
               ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addCandidateSlot}
-                  disabled={!startTimeInput || !endTimeInput || startTimeInput >= endTimeInput}
-                  className="w-full"
-                >
+                <Button type="button" variant="outline" onClick={() => setShowAddSlotModal(true)} disabled={isConfirmed} className="w-full">
                   <Plus className="h-4 w-4 mr-2" />
                   時間枠を追加
                 </Button>
               )}
-              
+
               {(conflicts.hasConflict || candidateAddError) && (
                 <Alert className="border-destructive bg-destructive/5">
                   <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -442,9 +404,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                     {candidateAddError ? (
                       <div className="space-y-2">
                         <span className="font-medium">{candidateAddError}</span>
-                        <p className="text-sm opacity-90">
-                          移動時間や面接前後の準備時間を考慮して、前後30分のバッファを設けています。
-                        </p>
+                        <p className="text-sm opacity-90">移動時間や面接前後の準備時間を考慮して、前後30分のバッファを設けています。</p>
                       </div>
                     ) : (
                       <>
@@ -461,8 +421,27 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                   </AlertDescription>
                 </Alert>
               )}
-              
-              {candidateSlots.length > 0 && (
+
+              {isConfirmed && editEvent?.confirmed_slot && (
+                <Card className="border-green-200 bg-green-50/50">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm font-medium text-green-800">確定した日程（編集不可）</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg border bg-white border-green-200">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium">{formatTimeSlotWithDate(editEvent.confirmed_slot)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {!isConfirmed && candidateSlots.length > 0 && (
                 <Card className="border-green-200 bg-green-50/50">
                   <CardContent className="p-4">
                     <div className="space-y-3">
@@ -474,39 +453,18 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                         {candidateSlots.map((slot, index) => (
                           <div key={index} className={cn(
                             "flex items-center justify-between p-3 rounded-lg border",
-                            editingSlotIndex === index 
-                              ? "bg-blue-50 border-blue-200" 
-                              : "bg-white border-green-200"
+                            editingSlotIndex === index ? "bg-blue-50 border-blue-200" : "bg-white border-green-200"
                           )}>
                             <div className="flex items-center gap-2">
-                              <Calendar className={cn(
-                                "h-4 w-4",
-                                editingSlotIndex === index ? "text-blue-600" : "text-green-600"
-                              )} />
+                              <Calendar className={cn("h-4 w-4", editingSlotIndex === index ? "text-blue-600" : "text-green-600")} />
                               <span className="text-sm font-medium">{formatTimeSlotWithDate(slot)}</span>
-                              {editingSlotIndex === index && (
-                                <Badge variant="secondary" className="text-xs">編集中</Badge>
-                              )}
+                              {editingSlotIndex === index && <Badge variant="secondary" className="text-xs">編集中</Badge>}
                             </div>
                             <div className="flex items-center gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => startEditSlot(index)}
-                                disabled={editingSlotIndex !== null && editingSlotIndex !== index}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              >
+                              <Button type="button" variant="ghost" size="sm" onClick={() => startEditSlot(index)} disabled={isConfirmed || (editingSlotIndex !== null && editingSlotIndex !== index)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeCandidateSlot(index)}
-                                disabled={editingSlotIndex !== null && editingSlotIndex !== index}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
+                              <Button type="button" variant="ghost" size="sm" onClick={() => { if (editingSlotIndex !== null) { cancelEditSlot() } else { removeCandidateSlot(index) } }} disabled={isConfirmed || (editingSlotIndex !== null && editingSlotIndex !== index)} className="text-red-600 hover:text-red-700 hover:bg-red-50">
                                 <X className="h-4 w-4" />
                               </Button>
                             </div>
@@ -517,15 +475,72 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                   </CardContent>
                 </Card>
               )}
-              
+
               {candidateSlots.length === 0 && (
                 <div className="text-center py-4 text-sm text-muted-foreground bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
                   <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
                   <p>候補日程を最低1つ追加してください</p>
-                  <p className="text-xs mt-1">開始時間と終了時間を選択して「時間枠を追加」をクリック</p>
+                  <p className="text-xs mt-1">「時間枠を追加」をクリックして時間を入力してください</p>
                 </div>
               )}
             </div>
+
+            <Dialog open={showAddSlotModal} onOpenChange={setShowAddSlotModal}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>候補時間を追加</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">開始時間</label>
+                    <DateTimePicker date={modalStartTime} onDateChange={setModalStartTime} placeholder="開始時間を選択" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">終了時間</label>
+                    <DateTimePicker date={modalEndTime} onDateChange={setModalEndTime} placeholder="終了時間を選択" />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setShowAddSlotModal(false)} className="flex-1">キャンセル</Button>
+                  <Button onClick={() => {
+                    setCandidateAddError("");
+                    if (!modalStartTime || !modalEndTime) return;
+                    if (!(modalStartTime < modalEndTime)) return;
+                    const newSlot: TimeSlot = { start_time: modalStartTime, end_time: modalEndTime };
+                    const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
+                    setConflicts(confirmedConflictResult);
+                    if (confirmedConflictResult.hasConflict) {
+                      return;
+                    }
+                    const existingCandidateSlots = getAllExistingCandidateSlots();
+                    for (const { slot, event } of existingCandidateSlots) {
+                      const buffered = addBufferToTimeSlot(slot);
+                      if (timeSlotsOverlap(newSlot, buffered)) {
+                        setCandidateAddError(`予定一覧に表示されている企業「${event.company_name}」の候補時間と重複しています（前後30分を含む）。`);
+                        return;
+                      }
+                    }
+                    for (const slot of candidateSlots) {
+                      const buffered = addBufferToTimeSlot(slot);
+                      if (timeSlotsOverlap(newSlot, buffered)) {
+                        setCandidateAddError("既に追加済みの候補日の前後30分内と重複しています。");
+                        return;
+                      }
+                    }
+                    setCandidateSlots(prev => [...prev, newSlot].sort((a, b) => a.start_time.getTime() - b.start_time.getTime()));
+                    setModalStartTime(undefined);
+                    setModalEndTime(undefined);
+                    setShowAddSlotModal(false);
+                  }} disabled={!modalStartTime || !modalEndTime || (modalStartTime && modalEndTime && !(modalStartTime < modalEndTime))} className="flex-1">追加</Button>
+                </div>
+                {(candidateAddError || conflicts.hasConflict) && (
+                  <Alert className="mt-2 border-destructive bg-destructive/5">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    <AlertDescription className="text-destructive">{candidateAddError || 'この時間は既存の予定と重複しています（前後30分を含む）。'}</AlertDescription>
+                  </Alert>
+                )}
+              </DialogContent>
+            </Dialog>
 
             <FormField
               control={form.control}
@@ -534,10 +549,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                 <FormItem>
                   <FormLabel>メモ</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="持参物、注意事項など"
-                      {...field}
-                    />
+                    <Textarea placeholder="持参物、注意事項など" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -545,21 +557,8 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
             />
 
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                className="flex-1"
-              >
-                キャンセル
-              </Button>
-              <Button
-                type="submit"
-                disabled={candidateSlots.length === 0}
-                className="flex-1"
-              >
-                {isEditMode ? '更新' : '追加'}
-              </Button>
+              <Button type="button" variant="outline" onClick={handleClose} className="flex-1">キャンセル</Button>
+              <Button type="submit" disabled={candidateSlots.length === 0} className="flex-1">{isEditMode ? '更新' : '追加'}</Button>
             </div>
           </form>
         </Form>
