@@ -493,11 +493,31 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">開始時間</label>
-                    <DateTimePicker date={modalStartTime} onDateChange={setModalStartTime} placeholder="開始時間を選択" />
+                    <DateTimePicker 
+                      date={modalStartTime} 
+                      onDateChange={(date) => {
+                        setModalStartTime(date);
+                        if (date && !modalEndTime) {
+                          // 開始時間が設定され、終了時間が未設定の場合は同じ日時に設定
+                          setModalEndTime(date);
+                        }
+                      }} 
+                      placeholder="開始時間を選択" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">終了時間</label>
-                    <DateTimePicker date={modalEndTime} onDateChange={setModalEndTime} placeholder="終了時間を選択" />
+                    <DateTimePicker 
+                      date={modalEndTime} 
+                      onDateChange={(date) => {
+                        setModalEndTime(date);
+                        if (date && !modalStartTime) {
+                          // 終了時間が設定され、開始時間が未設定の場合は同じ日時に設定
+                          setModalStartTime(date);
+                        }
+                      }} 
+                      placeholder="終了時間を選択" 
+                    />
                   </div>
                 </div>
                 <div className="flex gap-2 pt-2">
