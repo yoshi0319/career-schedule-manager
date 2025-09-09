@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,21 @@ const LoadingSkeleton = () => (
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
+
+  // タブ状態を永続化
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try {
+      return localStorage.getItem('csm_active_tab') || 'companies';
+    } catch {
+      return 'companies';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('csm_active_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
 
   // API データ取得（フック順序を維持）
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
@@ -326,7 +341,7 @@ const Index = () => {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="companies" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="companies" className="text-xs sm:text-sm">企業一覧</TabsTrigger>
             <TabsTrigger value="events" className="text-xs sm:text-sm">予定一覧</TabsTrigger>
