@@ -38,8 +38,8 @@ export const useEvents = () => {
     },
     staleTime: 5 * 60 * 1000, // 5分間はキャッシュを使用
     gcTime: 10 * 60 * 1000, // 10分間メモリに保持
-    refetchOnWindowFocus: true, // ウィンドウフォーカス時の再取得を有効化
-    refetchOnMount: true, // コンポーネントマウント時の再取得を有効化
+    refetchOnWindowFocus: false, // ウィンドウフォーカス時の再取得を無効化（レート制限対策）
+    refetchOnMount: false, // コンポーネントマウント時の再取得を無効化（レート制限対策）
     enabled: !!user, // ユーザーがログインしている場合のみ実行
   })
 }

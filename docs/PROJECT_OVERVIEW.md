@@ -257,6 +257,13 @@ checkConfirmedEventConflict(selectedSlot, allEvents)
    - `deleteCompany`関数で関連イベントも削除されるか確認
    - `useJobHuntingData`のデータ整合性確認
 
+4. **日程追加画面で重複チェックが動作しない（重大バグ）**
+   - **症状**: 候補日程の重複チェック（前後30分バッファ）が全く動作しない
+   - **原因**: 候補日程追加ボタンが`addCandidateSlot`関数を呼び出していない
+   - **解決**: インライン関数から`addCandidateSlot`関数の呼び出しに変更
+   - **確認方法**: ブラウザのコンソールでデバッグログを確認
+   - **修正ファイル**: `frontend/src/components/AddEventForm.tsx`
+
 ### デバッグポイント
 - **状態管理**: `useJobHuntingData`フックのデータフロー
 - **競合検出**: `conflictDetection.ts`の多層チェックロジック

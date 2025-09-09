@@ -14,7 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, CalendarPlus, X, AlertTriangle, Calendar, Edit, Check } from 'lucide-react';
 import { Company, Event, EventType, TimeSlot, CandidateTimeSlot, InterviewTimeSlot } from '@/types';
-import { checkCandidateTimeSlotConflict, checkInterviewTimeConflict, checkConfirmedEventConflict, formatTimeSlotWithDate, addBufferToTimeSlot } from '@/lib/conflictDetection';
+import { checkCandidateTimeSlotConflict, checkInterviewTimeConflict, checkConfirmedEventConflict, formatTimeSlotWithDate, addBufferToTimeSlot, timeSlotsOverlap } from '@/lib/conflictDetection';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -110,12 +110,6 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     return isCustomDuration ? customDuration : formDuration;
   };
 
-  // 候補時間帯の追加時の競合チェック（確定済み予定時間とのみ）
-  const checkCandidateSlotConflict = (newSlot: TimeSlot) => {
-    const confirmedConflictResult = checkCandidateTimeSlotConflict(newSlot, events);
-    setConflicts(confirmedConflictResult);
-    return confirmedConflictResult.hasConflict;
-  };
 
   const addCandidateSlot = () => {
     setCandidateAddError("");
@@ -124,19 +118,42 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
 
     const newSlot: CandidateTimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
 
-    // 確定済み面接時間との競合のみをチェック（候補時間帯は競合判定に使わない）
-    if (checkCandidateSlotConflict(newSlot)) {
+    // 確定済み面接時間との競合チェック（全企業）
+    const otherEvents = events.filter(event => event.id !== editEvent?.id);
+    const confirmedConflictResult = checkCandidateTimeSlotConflict(newSlot, otherEvents);
+    if (confirmedConflictResult.hasConflict) {
       setCandidateAddError("この時間帯は確定済みの予定時間と重複しています。");
       return;
     }
 
-    // 同一イベント内での候補時間帯重複チェック
-    for (const slot of candidateSlots) {
-      if (timeSlotsOverlap(newSlot, slot)) {
-        setCandidateAddError("既に追加済みの候補時間帯と重複しています。");
+    // 他企業の候補日程との競合チェック（バッファ30分適用）
+    const allExistingCandidateSlots = otherEvents
+      .flatMap(event => event.candidate_slots || []);
+    
+    // 現在編集中のイベントの候補日程も含める（ローカル状態）
+    const currentEventCandidateSlots = candidateSlots;
+    
+    // 全ての候補日程を統合
+    const allCandidateSlots = [...allExistingCandidateSlots, ...currentEventCandidateSlots];
+    
+    for (const existingSlot of allCandidateSlots) {
+      const bufferedSlot = addBufferToTimeSlot(existingSlot);
+      if (timeSlotsOverlap(newSlot, bufferedSlot)) {
+        // どのイベントの候補日程か特定
+        let conflictingEvent = otherEvents.find(event => 
+          event.candidate_slots?.some(slot => slot === existingSlot)
+        );
+        
+        // 現在編集中のイベントの候補日程の場合
+        if (!conflictingEvent && editEvent) {
+          conflictingEvent = editEvent;
+        }
+        
+        setCandidateAddError(`この時間帯は他の企業の候補日程と重複しています（前後30分を含む）: ${conflictingEvent?.company_name || '不明な企業'}`);
         return;
       }
     }
+
 
     setCandidateSlots(prev =>
       [...prev, newSlot].sort((a, b) => a.start_time.getTime() - b.start_time.getTime())
@@ -176,20 +193,43 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     const newSlot: TimeSlot = { start_time: modalStartTime, end_time: modalEndTime };
 
     const otherSlots = candidateSlots.filter((_, i) => i !== editingSlotIndex);
+    const otherEvents = events.filter(event => event.id !== editEvent?.id);
 
-    const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
-    setConflicts(confirmedConflictResult);
+    // 確定済み面接時間との競合チェック（全企業）
+    const confirmedConflictResult = checkCandidateTimeSlotConflict(newSlot, otherEvents);
     if (confirmedConflictResult.hasConflict) {
+      setCandidateAddError("この時間帯は確定済みの予定時間と重複しています。");
       return;
     }
 
-    // 同一イベント内での候補時間帯重複チェック（バッファなし）
-    for (const slot of otherSlots) {
-      if (timeSlotsOverlap(newSlot, slot)) {
-        setCandidateAddError("他の候補時間帯と重複しています。");
+    // 他企業の候補日程との競合チェック（バッファ30分適用）
+    const allExistingCandidateSlots = otherEvents
+      .flatMap(event => event.candidate_slots || []);
+    
+    // 現在編集中のイベントの候補日程も含める（ローカル状態）
+    const currentEventCandidateSlots = otherSlots;
+    
+    // 全ての候補日程を統合
+    const allCandidateSlots = [...allExistingCandidateSlots, ...currentEventCandidateSlots];
+    
+    for (const existingSlot of allCandidateSlots) {
+      const bufferedSlot = addBufferToTimeSlot(existingSlot);
+      if (timeSlotsOverlap(newSlot, bufferedSlot)) {
+        // どのイベントの候補日程か特定
+        let conflictingEvent = otherEvents.find(event => 
+          event.candidate_slots?.some(slot => slot === existingSlot)
+        );
+        
+        // 現在編集中のイベントの候補日程の場合
+        if (!conflictingEvent && editEvent) {
+          conflictingEvent = editEvent;
+        }
+        
+        setCandidateAddError(`この時間帯は他の企業の候補日程と重複しています（前後30分を含む）: ${conflictingEvent?.company_name || '不明な企業'}`);
         return;
       }
     }
+
 
     setCandidateSlots(prev => {
       const updated = [...prev];
@@ -561,25 +601,9 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" onClick={() => setShowAddSlotModal(false)} className="flex-1">キャンセル</Button>
                   <Button onClick={() => {
-                    setCandidateAddError("");
-                    if (!modalStartTime || !modalEndTime) return;
-                    if (!(modalStartTime < modalEndTime)) return;
-                    
-                    // 候補時間帯をそのまま保存（バッファは追加しない）
-                    const newSlot: TimeSlot = { start_time: modalStartTime, end_time: modalEndTime };
-                    const confirmedConflictResult = checkConfirmedEventConflict(newSlot, events);
-                    setConflicts(confirmedConflictResult);
-                    if (confirmedConflictResult.hasConflict) {
-                      return;
-                    }
-                    // 同一イベント内での候補時間帯重複チェック（バッファなし）
-                    for (const slot of candidateSlots) {
-                      if (timeSlotsOverlap(newSlot, slot)) {
-                        setCandidateAddError("既に追加済みの候補時間帯と重複しています。");
-                        return;
-                      }
-                    }
-                    setCandidateSlots(prev => [...prev, newSlot].sort((a, b) => a.start_time.getTime() - b.start_time.getTime()));
+                    setStartTimeInput(modalStartTime);
+                    setEndTimeInput(modalEndTime);
+                    addCandidateSlot();
                     setModalStartTime(undefined);
                     setModalEndTime(undefined);
                     setShowAddSlotModal(false);
