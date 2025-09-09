@@ -24,8 +24,8 @@ export const useCompanies = () => {
     },
     staleTime: 5 * 60 * 1000, // 5分間はキャッシュを使用
     gcTime: 10 * 60 * 1000, // 10分間メモリに保持
-    refetchOnWindowFocus: true, // ウィンドウフォーカス時の再取得を有効化
-    refetchOnMount: true, // コンポーネントマウント時の再取得を有効化
+    refetchOnWindowFocus: false, // ウィンドウフォーカス時の再取得を無効化（レート制限対策）
+    refetchOnMount: false, // コンポーネントマウント時の再取得を無効化（レート制限対策）
     enabled: !!user, // ユーザーがログインしている場合のみ実行
   })
 }
@@ -44,6 +44,8 @@ export const useCreateCompany = () => {
         if (!oldData) return [newCompany]
         return [...oldData, newCompany]
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       
       toast({
         title: "企業を追加しました",
@@ -74,6 +76,8 @@ export const useUpdateCompany = () => {
         if (!oldData) return oldData
         return oldData.map(c => c.id === updatedCompany.id ? updatedCompany : c)
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       
       toast({
         title: "企業を更新しました",
@@ -109,6 +113,8 @@ export const useDeleteCompany = () => {
         if (!oldData) return oldData
         return oldData.filter(e => e.company_id !== deletedId)
       })
+      // サーバーの最新状態と同期
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       
       toast({
         title: "企業を削除しました",

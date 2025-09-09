@@ -65,10 +65,11 @@ func main() {
 	}
 	r := gin.Default()
 
-	// レスポンス最適化設定
+	// キャッシュ無効化（常に最新を取得）
 	r.Use(func(c *gin.Context) {
-		// キャッシュ制御
-		c.Header("Cache-Control", "public, max-age=300")
+		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
 		c.Next()
 	})
 
@@ -87,8 +88,13 @@ func main() {
 	corsConfig.AllowCredentials = true
 	r.Use(cors.New(corsConfig))
 
-	// Rate limiting middleware
-	limiter := rate.NewLimiter(rate.Every(time.Minute), 100) // 100 requests per minute
+	// Rate limiting middleware (開発環境では緩和)
+	var limiter *rate.Limiter
+	if cfg.GinMode == "release" {
+		limiter = rate.NewLimiter(rate.Every(time.Minute), 100) // 本番環境: 100 requests per minute
+	} else {
+		limiter = rate.NewLimiter(rate.Every(time.Minute), 1000) // 開発環境: 1000 requests per minute
+	}
 	r.Use(func(c *gin.Context) {
 		if !limiter.Allow() {
 			c.JSON(429, gin.H{"error": "Rate limit exceeded"})
