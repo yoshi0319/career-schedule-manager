@@ -425,21 +425,19 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                 <p className="text-sm text-muted-foreground mt-1">面接可能な日時を複数設定してください（5分刻みで選択可能）</p>
               </div>
 
-              {editingSlotIndex === null && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setModalInterviewDuration(getCurrentDuration());
-                    setShowAddSlotModal(true);
-                  }} 
-                  disabled={isConfirmed} 
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  時間枠を追加
-                </Button>
-              )}
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setModalInterviewDuration(getCurrentDuration());
+                  setShowAddSlotModal(true);
+                }} 
+                disabled={isConfirmed} 
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                時間枠を追加
+              </Button>
 
               {(conflicts.hasConflict || candidateAddError) && (
                 <Alert className="border-destructive bg-destructive/5">
