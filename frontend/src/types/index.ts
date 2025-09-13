@@ -39,6 +39,7 @@ export interface Event {
   status: EventStatus;
   candidate_slots: CandidateTimeSlot[];  // 候補時間帯
   confirmed_slot?: InterviewTimeSlot;    // 確定した面接時間
+  interview_duration: number;            // 予定時間（分）
   location?: string;
   is_online: boolean;
   notes?: string;
