@@ -40,6 +40,7 @@ export interface Event {
   candidate_slots: CandidateTimeSlot[];  // 候補時間帯
   confirmed_slot?: InterviewTimeSlot;    // 確定した面接時間
   interview_duration: number;            // 予定時間（分）
+  custom_email_format?: string;          // カスタムメールフォーマット
   location?: string;
   is_online: boolean;
   notes?: string;
