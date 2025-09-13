@@ -277,57 +277,56 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
                   <div
                     key={day.toISOString()}
                     className={cn(
-                      "h-16 sm:h-20 md:h-24 p-1 sm:p-2 flex flex-col items-center justify-start hover:bg-accent relative border-r border-b border-border/30 last:border-r-0 cursor-pointer",
+                      "h-20 sm:h-24 md:h-28 p-1 sm:p-2 flex flex-col hover:bg-accent relative border-r border-b border-border/30 last:border-r-0 cursor-pointer",
                       !isCurrentMonth && "text-muted-foreground opacity-50",
                       isSelected && "bg-accent border-2 border-primary",
                       isToday && "bg-primary/10 font-bold"
                     )}
                     onClick={() => setSelectedDate(day)}
                   >
-                    {/* 日付 - 中央揃え */}
+                    {/* 日付 - 固定位置 */}
                     <div className={cn(
-                      "text-xs sm:text-sm w-full text-center",
+                      "text-xs sm:text-sm w-full text-center flex-shrink-0",
                       index % 7 === 0 ? "text-red-600" : index % 7 === 6 ? "text-blue-600" : "",
                       isToday && "text-primary"
                     )}>
                       {format(day, 'd')}
                     </div>
 
-                    {/* イベント表示 */}
-                    {hasEvents && (
-                      <div className="flex flex-col gap-0.5 sm:gap-1 w-full mt-1">
-                        {dayEvents.slice(0, 2).map((dayEvent, eventIndex) => (
-                          <div
-                            key={`${dayEvent.event.id}-${eventIndex}`}
-                            className={cn(
-                              "w-full px-1 py-0.5 rounded text-[8px] sm:text-[9px] md:text-[10px] leading-tight",
-                              dayEvent.type === 'confirmed' 
-                                ? "bg-confirmed text-white" 
-                                : "bg-candidate text-white"
-                            )}
-                            title={`${dayEvent.company.name} - ${dayEvent.event.title} (${formatTime(dayEvent.timeSlot.start_time)})`}
-                          >
-                            <div className="flex items-center gap-1">
-                              <span className="text-[7px] sm:text-[8px]">{getEventTypeIcon(dayEvent.event.type)}</span>
-                              <div className="truncate font-medium flex-1">
-                                {getShortCompanyName(dayEvent.company.name)}
+                    {/* イベント表示エリア - スクロール可能 */}
+                    <div className="flex-1 w-full mt-1 overflow-hidden">
+                      {hasEvents && (
+                        <div className="h-full overflow-y-auto scrollbar-thin">
+                          <div className="flex flex-col gap-0.5 sm:gap-1">
+                            {dayEvents.map((dayEvent, eventIndex) => (
+                              <div
+                                key={`${dayEvent.event.id}-${eventIndex}`}
+                                className={cn(
+                                  "w-full px-1 py-0.5 rounded text-[8px] sm:text-[9px] md:text-[10px] leading-tight flex-shrink-0",
+                                  dayEvent.type === 'confirmed' 
+                                    ? "bg-confirmed text-white" 
+                                    : "bg-candidate text-white"
+                                )}
+                                title={`${dayEvent.company.name} - ${dayEvent.event.title} (${formatTime(dayEvent.timeSlot.start_time)})`}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[7px] sm:text-[8px]">{getEventTypeIcon(dayEvent.event.type)}</span>
+                                  <div className="truncate font-medium flex-1">
+                                    {getShortCompanyName(dayEvent.company.name)}
+                                  </div>
+                                </div>
+                                <div className="truncate text-[7px] sm:text-[8px] md:text-[9px] opacity-90">
+                                  {dayEvent.type === 'confirmed' 
+                                    ? formatTime(dayEvent.timeSlot.start_time)
+                                    : `${formatTime(dayEvent.timeSlot.start_time)}〜`
+                                  }
+                                </div>
                               </div>
-                            </div>
-                            <div className="truncate text-[7px] sm:text-[8px] md:text-[9px] opacity-90">
-                              {dayEvent.type === 'confirmed' 
-                                ? formatTime(dayEvent.timeSlot.start_time)
-                                : `${formatTime(dayEvent.timeSlot.start_time)}〜`
-                              }
-                            </div>
+                            ))}
                           </div>
-                        ))}
-                        {dayEvents.length > 2 && (
-                          <div className="text-[8px] sm:text-[9px] md:text-[10px] text-muted-foreground text-center bg-muted rounded px-1 py-0.5">
-                            他{dayEvents.length - 2}件
-                          </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
