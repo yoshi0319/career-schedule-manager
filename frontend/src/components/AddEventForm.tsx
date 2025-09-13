@@ -122,12 +122,17 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   };
 
 
-  const addCandidateSlot = () => {
+  const addCandidateSlot = (startTime?: Date, endTime?: Date) => {
     setCandidateAddError("");
-    if (!startTimeInput || !endTimeInput) return;
-    if (!(startTimeInput < endTimeInput)) return;
+    
+    // パラメータが渡された場合はそれを使用、そうでなければ状態から取得
+    const actualStartTime = startTime || startTimeInput;
+    const actualEndTime = endTime || endTimeInput;
+    
+    if (!actualStartTime || !actualEndTime) return;
+    if (!(actualStartTime < actualEndTime)) return;
 
-    const newSlot: CandidateTimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
+    const newSlot: CandidateTimeSlot = { start_time: actualStartTime, end_time: actualEndTime };
 
     // 確定済み面接時間との競合チェック（全企業）
     const otherEvents = events.filter(event => event.id !== editEvent?.id);
@@ -168,8 +173,12 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     setCandidateSlots(prev =>
       [...prev, newSlot].sort((a, b) => a.start_time.getTime() - b.start_time.getTime())
     );
-    setStartTimeInput(undefined);
-    setEndTimeInput(undefined);
+    
+    // パラメータが渡されていない場合（通常のフォームからの呼び出し）のみ状態をリセット
+    if (!startTime && !endTime) {
+      setStartTimeInput(undefined);
+      setEndTimeInput(undefined);
+    }
   };
 
   const removeCandidateSlot = (index: number) => {
@@ -614,9 +623,8 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" onClick={() => setShowAddSlotModal(false)} className="flex-1">キャンセル</Button>
                   <Button onClick={() => {
-                    setStartTimeInput(modalStartTime);
-                    setEndTimeInput(modalEndTime);
-                    addCandidateSlot();
+                    // 直接値を渡してaddCandidateSlotを呼び出し
+                    addCandidateSlot(modalStartTime, modalEndTime);
                     setModalStartTime(undefined);
                     setModalEndTime(undefined);
                     setShowAddSlotModal(false);
