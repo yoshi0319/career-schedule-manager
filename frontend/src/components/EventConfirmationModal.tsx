@@ -15,6 +15,7 @@ interface EventConfirmationModalProps {
   onClose: () => void;
   onConfirm: (selectedSlot: InterviewTimeSlot) => void;
   initialSelectedSlotIndex?: number;
+  interviewDuration?: number;
 }
 
 export const EventConfirmationModal = ({ 
@@ -23,14 +24,14 @@ export const EventConfirmationModal = ({
   isOpen, 
   onClose, 
   onConfirm,
-  initialSelectedSlotIndex = 0
+  initialSelectedSlotIndex = 0,
+  interviewDuration = 30
 }: EventConfirmationModalProps) => {
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(initialSelectedSlotIndex);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [conflictError, setConflictError] = useState<string>('');
 
   const selectedSlot = event.candidate_slots[selectedSlotIndex];
-  const [interviewDuration, setInterviewDuration] = useState<number>(30); // デフォルト30分
   
   // 選択された候補時間帯から予定時間の開始時刻オプションを生成（5分刻み）
   const generateStartTimeOptions = (slot: CandidateTimeSlot): string[] => {

@@ -267,6 +267,7 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleConfirmSlot}
         initialSelectedSlotIndex={selectedSlotIndex}
+        interviewDuration={event.interview_duration || 30}
       />
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
