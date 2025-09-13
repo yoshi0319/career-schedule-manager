@@ -309,7 +309,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
         <DialogTrigger asChild>
           <Button>
             <CalendarPlus className="h-4 w-4" />
-            面接日程追加
+            予定追加
           </Button>
         </DialogTrigger>
       )}
