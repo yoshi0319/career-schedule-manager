@@ -30,6 +30,7 @@ type Event struct {
 	CandidateSlots    datatypes.JSON `json:"candidate_slots" gorm:"column:candidate_slots;type:jsonb"`
 	ConfirmedSlot     datatypes.JSON `json:"confirmed_slot" gorm:"column:confirmed_slot;type:jsonb"`
 	InterviewDuration int            `json:"interview_duration" gorm:"column:interview_duration;default:30" validate:"min=15,max=300"`
+	CustomEmailFormat string         `json:"custom_email_format" gorm:"column:custom_email_format" validate:"max=2000"`
 	Location          string         `json:"location" validate:"max=200"`
 	IsOnline          bool           `json:"is_online" gorm:"column:is_online;default:false"`
 	Notes             string         `json:"notes" validate:"max=1000"`

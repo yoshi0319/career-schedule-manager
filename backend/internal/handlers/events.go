@@ -23,7 +23,7 @@ func GetEvents(db *gorm.DB) gin.HandlerFunc {
 
 		var events []models.Event
 		// クエリ最適化: 必要なフィールドのみ選択、インデックス活用
-		if err := db.Select("id, company_id, user_id, company_name, title, type, status, candidate_slots, confirmed_slot, interview_duration, location, is_online, notes, created_at, updated_at").
+		if err := db.Select("id, company_id, user_id, company_name, title, type, status, candidate_slots, confirmed_slot, interview_duration, custom_email_format, location, is_online, notes, created_at, updated_at").
 			Where("user_id = ?", userID).
 			Order("created_at DESC"). // 最新作成順でソート
 			Find(&events).Error; err != nil {
@@ -204,5 +204,51 @@ func ConfirmEvent(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, event)
+	}
+}
+
+func UpdateEventEmailFormat(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
+		userID := c.GetString("user_id")
+		eventID := c.Param("id")
+
+		var request struct {
+			CustomEmailFormat string `json:"custom_email_format" validate:"max=2000"`
+		}
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// バリデーション
+		validate := validator.New()
+		if err := validate.Struct(request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// イベントの存在確認とユーザー権限チェック
+		var event models.Event
+		if err := db.Where("id = ? AND user_id = ?", eventID, userID).First(&event).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch event"})
+			}
+			return
+		}
+
+		// カスタムフォーマットを更新
+		event.CustomEmailFormat = request.CustomEmailFormat
+		if err := db.Save(&event).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update email format"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Email format updated successfully", "custom_email_format": event.CustomEmailFormat})
 	}
 }

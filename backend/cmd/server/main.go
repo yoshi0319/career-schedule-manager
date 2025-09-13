@@ -141,6 +141,7 @@ func main() {
 			events.PUT("/:id", handlers.UpdateEvent(db))
 			events.DELETE("/:id", handlers.DeleteEvent(db))
 			events.PUT("/:id/confirm", handlers.ConfirmEvent(db))
+			events.PUT("/:id/email-format", handlers.UpdateEventEmailFormat(db))
 		}
 	}
 

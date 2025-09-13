@@ -5,11 +5,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { Event, TimeSlot, CandidateTimeSlot, InterviewTimeSlot } from '@/types';
 import { formatTimeSlotWithDate, checkInterviewTimeConflict } from '@/lib/conflictDetection';
-import { Clock, Calendar, AlertTriangle, Copy, Check } from 'lucide-react';
-import { format } from 'date-fns';
+import { Clock, Calendar, AlertTriangle, Copy, Check, Edit3, Save, X, RotateCcw } from 'lucide-react';
+import { format as formatDate } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { apiClient } from '@/lib/api';
 
 interface EventConfirmationModalProps {
   event: Event;
@@ -34,61 +36,64 @@ export const EventConfirmationModal = ({
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [conflictError, setConflictError] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
+  
+  // カスタムフォーマット編集用の状態
+  const [isEditingFormat, setIsEditingFormat] = useState<boolean>(false);
+  const [customFormat, setCustomFormat] = useState<string>('');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
 
   const selectedSlot = event.candidate_slots[selectedSlotIndex];
   
-  // メール用フォーマットを生成する関数
-  const generateEmailFormat = (): string => {
+  // デフォルトフォーマットを生成する関数
+  const generateDefaultFormat = (): string => {
     // 日付ごとに候補時間をグループ化
     const slotsByDate = new Map<string, CandidateTimeSlot[]>();
-    
     event.candidate_slots.forEach(slot => {
-      const dateKey = format(slot.start_time, 'M/d(E)', { locale: ja });
+      const dateKey = formatDate(slot.start_time, 'M/d(E)', { locale: ja });
       if (!slotsByDate.has(dateKey)) {
         slotsByDate.set(dateKey, []);
       }
       slotsByDate.get(dateKey)!.push(slot);
     });
     
-    // 日付順でソート
-    const sortedDates = Array.from(slotsByDate.keys()).sort((a, b) => {
-      const dateA = event.candidate_slots.find(slot => format(slot.start_time, 'M/d(E)', { locale: ja }) === a)?.start_time;
-      const dateB = event.candidate_slots.find(slot => format(slot.start_time, 'M/d(E)', { locale: ja }) === b)?.start_time;
-      return (dateA?.getTime() || 0) - (dateB?.getTime() || 0);
-    });
-    
-    // フォーマット生成
-    const lines = sortedDates.map(dateKey => {
-      const slots = slotsByDate.get(dateKey)!;
-      const timeRanges = slots
-        .sort((a, b) => a.start_time.getTime() - b.start_time.getTime())
-        .map(slot => {
-          const startTime = format(slot.start_time, 'HH:mm', { locale: ja });
-          
-          // 候補時間の長さを計算（分）
-          const slotDuration = Math.round((slot.end_time.getTime() - slot.start_time.getTime()) / 60000);
-          
-          // 候補時間が予定時間と同じ場合、開始時間のみ表示
-          if (slotDuration === interviewDuration) {
-            return startTime;
-          }
-          
-          // 候補時間が予定時間より長い場合、終了時間から予定時間分を引いた時間を表示
-          if (slotDuration > interviewDuration) {
-            const adjustedEndTime = new Date(slot.end_time.getTime() - interviewDuration * 60000);
-            const endTime = format(adjustedEndTime, 'HH:mm', { locale: ja });
-            return `${startTime}〜${endTime}`;
-          }
-          
-          // 候補時間が予定時間より短い場合（通常は発生しないが、念のため）
-          return `${startTime}〜${format(slot.end_time, 'HH:mm', { locale: ja })}`;
-        })
-        .join('、');
+    // 日付ごとの時間リストを生成
+    const dateTimeList = Array.from(slotsByDate.entries()).map(([date, slots]) => {
+      const timeList = slots.map(slot => {
+        const startTime = formatDate(slot.start_time, 'HH:mm', { locale: ja });
+        const slotDuration = Math.round((slot.end_time.getTime() - slot.start_time.getTime()) / (1000 * 60));
+        
+        // 候補時間が予定時間と同じ場合、開始時間のみ表示
+        if (slotDuration === interviewDuration) {
+          return startTime;
+        }
+        
+        // 候補時間が予定時間より長い場合、終了時間から予定時間分を引いた時間を表示
+        if (slotDuration > interviewDuration) {
+          const adjustedEndTime = new Date(slot.end_time.getTime() - interviewDuration * 60000);
+          const endTime = formatDate(adjustedEndTime, 'HH:mm', { locale: ja });
+          return `${startTime}〜${endTime}`;
+        }
+        
+        // 候補時間が予定時間より短い場合（通常は発生しないが、念のため）
+        return `${startTime}〜${formatDate(slot.end_time, 'HH:mm', { locale: ja })}`;
+      }).join('、');
       
-      return `・${dateKey} ${timeRanges}`;
-    });
+      return `・${date} ${timeList}`;
+    }).join('\n');
     
-    return lines.join('\n');
+    return `以下は開始時間です。\n${dateTimeList}`;
+  };
+  
+  // メール用フォーマットを生成する関数
+  const generateEmailFormat = (): string => {
+    // カスタムフォーマットが設定されている場合はそれを使用
+    if (event.custom_email_format) {
+      return event.custom_email_format;
+    }
+    
+    // デフォルトフォーマット
+    return generateDefaultFormat();
   };
 
   // クリップボードにコピーする関数
@@ -100,6 +105,52 @@ export const EventConfirmationModal = ({
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('コピーに失敗しました:', err);
+    }
+  };
+
+  // 編集モードを開始する関数
+  const handleStartEdit = () => {
+    setCustomFormat(event.custom_email_format || generateDefaultFormat());
+    setIsEditingFormat(true);
+  };
+
+  // 編集をキャンセルする関数
+  const handleCancelEdit = () => {
+    setIsEditingFormat(false);
+    setCustomFormat('');
+  };
+
+  // リセット機能（デフォルトに戻す）
+  const handleResetFormat = () => {
+    setShowResetConfirm(true);
+  };
+
+  // リセット確認
+  const handleConfirmReset = () => {
+    setCustomFormat(generateDefaultFormat());
+    setShowResetConfirm(false);
+  };
+
+  // リセットキャンセル
+  const handleCancelReset = () => {
+    setShowResetConfirm(false);
+  };
+
+  // カスタムフォーマットを保存する関数
+  const handleSaveFormat = async () => {
+    try {
+      setIsSaving(true);
+      await apiClient.updateEventEmailFormat(event.id, customFormat);
+      // イベントオブジェクトを更新（実際のアプリではReact Queryで再取得）
+      event.custom_email_format = customFormat;
+      setIsEditingFormat(false);
+    } catch (error) {
+      console.error('フォーマットの保存に失敗しました:', error);
+      const errorMessage = error instanceof Error ? error.message : 'フォーマットの保存に失敗しました。';
+      // TODO: エラーモーダルを実装
+      console.error(`エラー: ${errorMessage}`);
+    } finally {
+      setIsSaving(false);
     }
   };
   
@@ -175,8 +226,9 @@ export const EventConfirmationModal = ({
   }, [isOpen, initialSelectedSlotIndex]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{event.title}の日程確定</DialogTitle>
         </DialogHeader>
@@ -190,29 +242,89 @@ export const EventConfirmationModal = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-muted-foreground">メール用フォーマット</h3>
-              <Button
-                onClick={handleCopyToClipboard}
-                variant="ghost"
-                size="sm"
-                className="h-8 px-3 text-xs"
-              >
-                {copied ? (
+              <div className="flex gap-2">
+                {!isEditingFormat ? (
                   <>
-                    <Check className="h-3 w-3 mr-1" />
-                    コピー済み
+                    <Button
+                      onClick={handleStartEdit}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3 text-xs"
+                    >
+                      <Edit3 className="h-3 w-3 mr-1" />
+                      編集
+                    </Button>
+                    <Button
+                      onClick={handleCopyToClipboard}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3 text-xs"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="h-3 w-3 mr-1" />
+                          コピー済み
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3 mr-1" />
+                          コピー
+                        </>
+                      )}
+                    </Button>
                   </>
                 ) : (
-                  <>
-                    <Copy className="h-3 w-3 mr-1" />
-                    コピー
-                  </>
+                  <div className="flex gap-1">
+                    <Button
+                      onClick={handleSaveFormat}
+                      variant="default"
+                      size="sm"
+                      className="h-8 px-3 text-xs"
+                      disabled={isSaving}
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      {isSaving ? '保存中...' : '保存'}
+                    </Button>
+                    <Button
+                      onClick={handleResetFormat}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3 text-xs"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      リセット
+                    </Button>
+                    <Button
+                      onClick={handleCancelEdit}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3 text-xs"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      キャンセル
+                    </Button>
+                  </div>
                 )}
-              </Button>
+              </div>
             </div>
             
-            <div className="bg-muted/30 p-3 rounded border text-sm font-mono whitespace-pre-wrap">
-              以下は開始時間です。{'\n'}{generateEmailFormat()}
-            </div>
+            {!isEditingFormat ? (
+              <div className="bg-muted/30 p-3 rounded border text-sm font-mono whitespace-pre-wrap">
+                {generateEmailFormat()}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Textarea
+                  value={customFormat}
+                  onChange={(e) => setCustomFormat(e.target.value)}
+                  placeholder="カスタムフォーマットを入力してください..."
+                  className="min-h-[100px] font-mono text-sm"
+                />
+                <div className="text-xs text-muted-foreground">
+                  💡 ヒント: 自由にメールフォーマットを編集できます。保存するとこの予定専用のフォーマットとして使用されます。
+                </div>
+              </div>
+            )}
           </div>
           
           {/* 候補日選択 */}
@@ -322,5 +434,29 @@ export const EventConfirmationModal = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* リセット確認モーダル */}
+    <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>リセット確認</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground">
+            デフォルトフォーマットに戻しますか？<br />
+            現在の編集内容は失われます。
+          </p>
+        </div>
+        <DialogFooter className="flex gap-2">
+          <Button variant="outline" onClick={handleCancelReset}>
+            キャンセル
+          </Button>
+          <Button variant="destructive" onClick={handleConfirmReset}>
+            リセット
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
