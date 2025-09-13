@@ -131,6 +131,13 @@ class ApiClient {
       body: JSON.stringify({ confirmed_slot: confirmedSlot, status }),
     })
   }
+
+  async updateEventEmailFormat(id: string, customEmailFormat: string): Promise<{ message: string; custom_email_format: string }> {
+    return this.request<{ message: string; custom_email_format: string }>(`/api/v1/events/${id}/email-format`, {
+      method: 'PUT',
+      body: JSON.stringify({ custom_email_format: customEmailFormat }),
+    })
+  }
 }
 
 export const apiClient = new ApiClient()

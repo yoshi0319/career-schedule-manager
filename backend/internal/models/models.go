@@ -20,20 +20,22 @@ type Company struct {
 }
 
 type Event struct {
-	ID             string         `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	CompanyID      string         `json:"company_id" gorm:"column:company_id;type:uuid;not null;index" validate:"required,uuid"`
-	UserID         string         `json:"user_id" gorm:"column:user_id;type:uuid;not null;index"`
-	CompanyName    string         `json:"company_name" gorm:"column:company_name;not null" validate:"required,min=1,max=100"`
-	Title          string         `json:"title" gorm:"not null" validate:"required,min=1,max=200"`
-	Type           string         `json:"type" gorm:"not null" validate:"required,oneof=interview info_session group_discussion final_interview"`
-	Status         string         `json:"status" gorm:"default:candidate" validate:"oneof=candidate confirmed rejected"`
-	CandidateSlots datatypes.JSON `json:"candidate_slots" gorm:"column:candidate_slots;type:jsonb"`
-	ConfirmedSlot  datatypes.JSON `json:"confirmed_slot" gorm:"column:confirmed_slot;type:jsonb"`
-	Location       string         `json:"location" validate:"max=200"`
-	IsOnline       bool           `json:"is_online" gorm:"column:is_online;default:false"`
-	Notes          string         `json:"notes" validate:"max=1000"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
+	ID                string         `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	CompanyID         string         `json:"company_id" gorm:"column:company_id;type:uuid;not null;index" validate:"required,uuid"`
+	UserID            string         `json:"user_id" gorm:"column:user_id;type:uuid;not null;index"`
+	CompanyName       string         `json:"company_name" gorm:"column:company_name;not null" validate:"required,min=1,max=100"`
+	Title             string         `json:"title" gorm:"not null" validate:"required,min=1,max=200"`
+	Type              string         `json:"type" gorm:"not null" validate:"required,oneof=interview info_session group_discussion final_interview"`
+	Status            string         `json:"status" gorm:"default:candidate" validate:"oneof=candidate confirmed rejected"`
+	CandidateSlots    datatypes.JSON `json:"candidate_slots" gorm:"column:candidate_slots;type:jsonb"`
+	ConfirmedSlot     datatypes.JSON `json:"confirmed_slot" gorm:"column:confirmed_slot;type:jsonb"`
+	InterviewDuration int            `json:"interview_duration" gorm:"column:interview_duration;default:30" validate:"min=15,max=300"`
+	CustomEmailFormat string         `json:"custom_email_format" gorm:"column:custom_email_format" validate:"max=2000"`
+	Location          string         `json:"location" validate:"max=200"`
+	IsOnline          bool           `json:"is_online" gorm:"column:is_online;default:false"`
+	Notes             string         `json:"notes" validate:"max=1000"`
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
 }
 
 // BeforeCreate will set the default values for the Company

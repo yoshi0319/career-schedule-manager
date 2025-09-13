@@ -68,7 +68,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   const [modalEndTime, setModalEndTime] = useState<Date | undefined>(undefined);
   const [modalInterviewDuration, setModalInterviewDuration] = useState<number>(30);
   const [isCustomDuration, setIsCustomDuration] = useState(false);
-  const [customDuration, setCustomDuration] = useState<number>(30);
+  const [customDuration, setCustomDuration] = useState<number>(60);
 
   const isEditMode = !!editEvent;
   const isConfirmed = isEditMode && editEvent?.status === 'confirmed';
@@ -82,7 +82,8 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       isOnline: editEvent?.is_online || false,
       location: editEvent?.location || '',
       notes: editEvent?.notes || '',
-      interviewDuration: 30, // デフォルト30分
+      // 編集モード時は保存された予定時間を使用、新規作成時は30分
+      interviewDuration: editEvent?.interview_duration || 30,
     },
   });
 
@@ -90,10 +91,20 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   React.useEffect(() => {
     if (editEvent) {
       setIsOpen(true);
+      // 編集モード時にフォームの値を更新
+      form.reset({
+        title: editEvent.title,
+        companyId: editEvent.company_id,
+        type: editEvent.type,
+        isOnline: editEvent.is_online,
+        location: editEvent.location || '',
+        notes: editEvent.notes || '',
+        interviewDuration: editEvent.interview_duration || 30,
+      });
     } else {
       setIsOpen(false);
     }
-  }, [editEvent]);
+  }, [editEvent, form]);
 
   function timeSlotsOverlap(a: TimeSlot, b: TimeSlot): boolean {
     return a.start_time < b.end_time && a.end_time > b.start_time;
@@ -111,12 +122,17 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   };
 
 
-  const addCandidateSlot = () => {
+  const addCandidateSlot = (startTime?: Date, endTime?: Date) => {
     setCandidateAddError("");
-    if (!startTimeInput || !endTimeInput) return;
-    if (!(startTimeInput < endTimeInput)) return;
+    
+    // パラメータが渡された場合はそれを使用、そうでなければ状態から取得
+    const actualStartTime = startTime || startTimeInput;
+    const actualEndTime = endTime || endTimeInput;
+    
+    if (!actualStartTime || !actualEndTime) return;
+    if (!(actualStartTime < actualEndTime)) return;
 
-    const newSlot: CandidateTimeSlot = { start_time: startTimeInput, end_time: endTimeInput };
+    const newSlot: CandidateTimeSlot = { start_time: actualStartTime, end_time: actualEndTime };
 
     // 確定済み面接時間との競合チェック（全企業）
     const otherEvents = events.filter(event => event.id !== editEvent?.id);
@@ -157,8 +173,12 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     setCandidateSlots(prev =>
       [...prev, newSlot].sort((a, b) => a.start_time.getTime() - b.start_time.getTime())
     );
-    setStartTimeInput(undefined);
-    setEndTimeInput(undefined);
+    
+    // パラメータが渡されていない場合（通常のフォームからの呼び出し）のみ状態をリセット
+    if (!startTime && !endTime) {
+      setStartTimeInput(undefined);
+      setEndTimeInput(undefined);
+    }
   };
 
   const removeCandidateSlot = (index: number) => {
@@ -249,6 +269,9 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     const selectedCompany = companies.find(c => c.id === data.companyId);
     if (!selectedCompany) return;
 
+    // カスタム時間を考慮した実際の予定時間を取得
+    const actualDuration = getCurrentDuration();
+
     const eventData: Omit<Event, 'id' | 'created_at' | 'updated_at'> = {
       company_id: data.companyId,
       company_name: selectedCompany.name,
@@ -257,6 +280,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
       status: editEvent?.status || 'candidate',
       candidate_slots: candidateSlots.sort((a, b) => a.start_time.getTime() - b.start_time.getTime()),
       confirmed_slot: editEvent?.confirmed_slot,
+      interview_duration: actualDuration, // カスタム時間を考慮した値を使用
       is_online: data.isOnline,
       location: data.isOnline ? undefined : data.location,
       notes: data.notes,
@@ -294,7 +318,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
         <DialogTrigger asChild>
           <Button>
             <CalendarPlus className="h-4 w-4" />
-            面接日程追加
+            予定追加
           </Button>
         </DialogTrigger>
       )}
@@ -599,9 +623,8 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" onClick={() => setShowAddSlotModal(false)} className="flex-1">キャンセル</Button>
                   <Button onClick={() => {
-                    setStartTimeInput(modalStartTime);
-                    setEndTimeInput(modalEndTime);
-                    addCandidateSlot();
+                    // 直接値を渡してaddCandidateSlotを呼び出し
+                    addCandidateSlot(modalStartTime, modalEndTime);
                     setModalStartTime(undefined);
                     setModalEndTime(undefined);
                     setShowAddSlotModal(false);
