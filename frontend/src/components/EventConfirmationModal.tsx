@@ -4,9 +4,12 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Event, TimeSlot, CandidateTimeSlot, InterviewTimeSlot } from '@/types';
 import { formatTimeSlotWithDate, checkInterviewTimeConflict } from '@/lib/conflictDetection';
-import { Clock, Calendar, AlertTriangle } from 'lucide-react';
+import { Clock, Calendar, AlertTriangle, Copy, Check } from 'lucide-react';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
 
 interface EventConfirmationModalProps {
   event: Event;
@@ -30,8 +33,75 @@ export const EventConfirmationModal = ({
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(initialSelectedSlotIndex);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [conflictError, setConflictError] = useState<string>('');
+  const [copied, setCopied] = useState<boolean>(false);
 
   const selectedSlot = event.candidate_slots[selectedSlotIndex];
+  
+  // メール用フォーマットを生成する関数
+  const generateEmailFormat = (): string => {
+    // 日付ごとに候補時間をグループ化
+    const slotsByDate = new Map<string, CandidateTimeSlot[]>();
+    
+    event.candidate_slots.forEach(slot => {
+      const dateKey = format(slot.start_time, 'M/d(E)', { locale: ja });
+      if (!slotsByDate.has(dateKey)) {
+        slotsByDate.set(dateKey, []);
+      }
+      slotsByDate.get(dateKey)!.push(slot);
+    });
+    
+    // 日付順でソート
+    const sortedDates = Array.from(slotsByDate.keys()).sort((a, b) => {
+      const dateA = event.candidate_slots.find(slot => format(slot.start_time, 'M/d(E)', { locale: ja }) === a)?.start_time;
+      const dateB = event.candidate_slots.find(slot => format(slot.start_time, 'M/d(E)', { locale: ja }) === b)?.start_time;
+      return (dateA?.getTime() || 0) - (dateB?.getTime() || 0);
+    });
+    
+    // フォーマット生成
+    const lines = sortedDates.map(dateKey => {
+      const slots = slotsByDate.get(dateKey)!;
+      const timeRanges = slots
+        .sort((a, b) => a.start_time.getTime() - b.start_time.getTime())
+        .map(slot => {
+          const startTime = format(slot.start_time, 'HH:mm', { locale: ja });
+          
+          // 候補時間の長さを計算（分）
+          const slotDuration = Math.round((slot.end_time.getTime() - slot.start_time.getTime()) / 60000);
+          
+          // 候補時間が予定時間と同じ場合、開始時間のみ表示
+          if (slotDuration === interviewDuration) {
+            return startTime;
+          }
+          
+          // 候補時間が予定時間より長い場合、終了時間から予定時間分を引いた時間を表示
+          if (slotDuration > interviewDuration) {
+            const adjustedEndTime = new Date(slot.end_time.getTime() - interviewDuration * 60000);
+            const endTime = format(adjustedEndTime, 'HH:mm', { locale: ja });
+            return `${startTime}〜${endTime}`;
+          }
+          
+          // 候補時間が予定時間より短い場合（通常は発生しないが、念のため）
+          return `${startTime}〜${format(slot.end_time, 'HH:mm', { locale: ja })}`;
+        })
+        .join('、');
+      
+      return `・${dateKey} ${timeRanges}`;
+    });
+    
+    return lines.join('\n');
+  };
+
+  // クリップボードにコピーする関数
+  const handleCopyToClipboard = async () => {
+    try {
+      const emailFormat = generateEmailFormat();
+      await navigator.clipboard.writeText(emailFormat);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('コピーに失敗しました:', err);
+    }
+  };
   
   // 選択された候補時間帯から予定時間の開始時刻オプションを生成（5分刻み）
   const generateStartTimeOptions = (slot: CandidateTimeSlot): string[] => {
@@ -114,6 +184,35 @@ export const EventConfirmationModal = ({
         <div className="space-y-6">
           <div className="text-sm text-muted-foreground">
             {event.company_name}
+          </div>
+          
+          {/* メール用フォーマット */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-muted-foreground">メール用フォーマット</h3>
+              <Button
+                onClick={handleCopyToClipboard}
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-xs"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3 w-3 mr-1" />
+                    コピー済み
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3 mr-1" />
+                    コピー
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            <div className="bg-muted/30 p-3 rounded border text-sm font-mono whitespace-pre-wrap">
+              以下は開始時間です。{'\n'}{generateEmailFormat()}
+            </div>
           </div>
           
           {/* 候補日選択 */}
