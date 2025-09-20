@@ -25,3 +25,9 @@ dist-ssr
 
 .env
 .vercel
+
+# Private documentation and sensitive files
+.private/
+docs/
+*.env
+*.env.*
