@@ -1,16 +1,16 @@
-# ⚙️ バックエンド - 就活スケジュール管理API
+# バックエンド - 就活スケジュール管理API
 
 Go + Gin による高性能 RESTful API
 
-## 🚀 技術スタック
+## 技術スタック
 
-- **Go 1.21+** + **Gin Framework**
+- **Go 1.23+** + **Gin Framework**
 - **GORM** (PostgreSQL ORM)
 - **JWT認証** (github.com/golang-jwt/jwt/v5)
 - **バリデーション** (github.com/go-playground/validator/v10)
 - **Supabase PostgreSQL** (データベース)
 
-## 📦 開発環境セットアップ
+## 開発環境セットアップ
 
 ```bash
 # 依存関係インストール
@@ -22,12 +22,9 @@ cp env.example .env
 
 # 開発サーバー起動
 go run cmd/server/main.go
-
-# または開発用スクリプトを使用
-./scripts/dev.sh start
 ```
 
-## 🔧 環境変数
+## 環境変数
 
 `.env` に以下を設定：
 
@@ -42,7 +39,7 @@ FRONTEND_URL=http://localhost:5173
 PRODUCTION_FRONTEND_URL=https://your-app.vercel.app
 ```
 
-## 🗄️ データベーススキーマ
+## データベーススキーマ
 
 ### Companies テーブル
 ```sql
@@ -79,7 +76,7 @@ CREATE TABLE events (
 );
 ```
 
-## 🔐 認証・セキュリティ
+## 認証・セキュリティ
 
 ### JWT認証
 ```go
@@ -105,7 +102,7 @@ type Company struct {
 }
 ```
 
-## 🛣️ API エンドポイント
+## API エンドポイント
 
 ### 認証が必要な全エンドポイント
 ```
@@ -136,7 +133,7 @@ PUT    /api/v1/events/:id/confirm # イベント確定
 GET /health # サーバー状態確認
 ```
 
-## 🏗️ プロジェクト構造
+## プロジェクト構造
 
 ```
 backend/
@@ -158,7 +155,7 @@ backend/
 └── railway.toml        # Railway デプロイ設定
 ```
 
-## ⚡ パフォーマンス
+## パフォーマンス
 
 ### レスポンス時間
 - 企業一覧取得: ~20-40ms
@@ -170,16 +167,10 @@ backend/
 - GORM の自動プリロード
 - JSON レスポンスの最適化
 
-## 🔧 開発・デバッグ
+## 開発・デバッグ
 
 ### ローカル開発
 ```bash
-# 開発用スクリプト（推奨）
-./scripts/dev.sh start    # サーバー起動
-./scripts/dev.sh stop     # サーバー停止
-./scripts/dev.sh restart  # サーバー再起動
-./scripts/dev.sh status   # サーバー状態確認
-
 # 通常起動
 go run cmd/server/main.go
 
@@ -196,14 +187,7 @@ go test ./...
 go test -cover ./...
 ```
 
-### ログ確認
-```bash
-# 開発環境: コンソールに出力
-# 本番環境: Railway ログ
-railway logs
-```
-
-## 🚀 デプロイ
+## デプロイ
 
 ### Railway 設定
 ```toml
@@ -219,10 +203,3 @@ healthcheckTimeout = 30
 ### 環境別設定
 - **開発**: `GIN_MODE=debug`
 - **本番**: `GIN_MODE=release`
-
-## 🔗 関連ドキュメント
-
-- [プロジェクト概要](../README.md)
-- [フロントエンド仕様](../frontend/README.md)
-- [デプロイガイド](../DEPLOYMENT.md)
-- [開発履歴](../DEVELOPMENT_LOG.md)
