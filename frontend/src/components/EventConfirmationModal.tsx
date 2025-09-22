@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,6 +37,7 @@ export const EventConfirmationModal = ({
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [conflictError, setConflictError] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
+  const [includeEndAsStart, setIncludeEndAsStart] = useState<boolean>(false);
   
   // カスタムフォーマット編集用の状態
   const [isEditingFormat, setIsEditingFormat] = useState<boolean>(false);
@@ -45,7 +47,7 @@ export const EventConfirmationModal = ({
 
   const selectedSlot = event.candidate_slots[selectedSlotIndex];
   
-  // デフォルトフォーマットを生成する関数
+  // デフォルトフォーマットを生成する関数（トグルに応じてレンジ終端を切替）
   const generateDefaultFormat = (): string => {
     // 日付ごとに候補時間をグループ化
     const slotsByDate = new Map<string, CandidateTimeSlot[]>();
@@ -56,33 +58,25 @@ export const EventConfirmationModal = ({
       }
       slotsByDate.get(dateKey)!.push(slot);
     });
-    
-    // 日付ごとの時間リストを生成
+
+    // 日付ごとの時間レンジを生成
     const dateTimeList = Array.from(slotsByDate.entries()).map(([date, slots]) => {
       const timeList = slots.map(slot => {
         const startTime = formatDate(slot.start_time, 'HH:mm', { locale: ja });
-        const slotDuration = Math.round((slot.end_time.getTime() - slot.start_time.getTime()) / (1000 * 60));
-        
-        // 候補時間が予定時間と同じ場合、開始時間のみ表示
-        if (slotDuration === interviewDuration) {
-          return startTime;
-        }
-        
-        // 候補時間が予定時間より長い場合、終了時間から予定時間分を引いた時間を表示
-        if (slotDuration > interviewDuration) {
-          const adjustedEndTime = new Date(slot.end_time.getTime() - interviewDuration * 60000);
-          const endTime = formatDate(adjustedEndTime, 'HH:mm', { locale: ja });
-          return `${startTime}〜${endTime}`;
-        }
-        
-        // 候補時間が予定時間より短い場合（通常は発生しないが、念のため）
-        return `${startTime}〜${formatDate(slot.end_time, 'HH:mm', { locale: ja })}`;
+        const rangeEnd = includeEndAsStart
+          ? new Date(slot.end_time)
+          : new Date(slot.end_time.getTime() - interviewDuration * 60000);
+        const rangeEndText = formatDate(rangeEnd, 'HH:mm', { locale: ja });
+        return `${startTime}〜${rangeEndText}`;
       }).join('、');
-      
+
       return `・${date} ${timeList}`;
     }).join('\n');
-    
-    return `以下は開始時間です。\n${dateTimeList}`;
+
+    const note = includeEndAsStart
+      ? '以下は開始時間です（終了も開始として含みます）。'
+      : '以下は開始時間です（各候補の終了は開始受付の上限、最遅開始まで有効）。';
+    return `${note}\n${dateTimeList}`;
   };
   
   // メール用フォーマットを生成する関数
@@ -160,8 +154,11 @@ export const EventConfirmationModal = ({
     const startTime = new Date(slot.start_time);
     const endTime = new Date(slot.end_time);
     
-    // 予定時間を考慮して終了時刻を調整
-    const adjustedEndTime = new Date(endTime.getTime() - interviewDuration * 60 * 1000);
+    // 予定時間を考慮した最遅開始の扱い
+    // includeEndAsStart=true の場合は candidate.end も開始として含む
+    const adjustedEndTime = includeEndAsStart
+      ? endTime
+      : new Date(endTime.getTime() - interviewDuration * 60 * 1000);
     
     let currentTime = new Date(startTime);
     while (currentTime <= adjustedEndTime) {
@@ -199,6 +196,22 @@ export const EventConfirmationModal = ({
         setConflictError(`この時間は「${conflictingEvent.company_name}」の予定と重複しています（前後30分を含む）。`);
         return;
       }
+      // 候補内チェック
+      // includeEndAsStart=true: 開始が候補内であればOK（終了は候補を超えても可）
+      // false: 開始>=候補開始 かつ 終了<=候補終了
+      const startInRange = confirmedStartTime >= selectedSlot.start_time && confirmedStartTime <= selectedSlot.end_time;
+      const endInRange = confirmedEndTime <= selectedSlot.end_time;
+      if (includeEndAsStart) {
+        if (!startInRange) {
+          setConflictError('選択した時間は候補時間の範囲外です。');
+          return;
+        }
+      } else {
+        if (!(startInRange && endInRange)) {
+          setConflictError('選択した時間は候補時間の範囲外です。');
+          return;
+        }
+      }
       
       onConfirm(confirmedSlot);
       onClose();
@@ -234,6 +247,18 @@ export const EventConfirmationModal = ({
         </DialogHeader>
         
         <div className="space-y-6">
+          {/* 終了を開始として含むスイッチ */}
+          <div>
+            <Label className="text-base font-medium flex items-center gap-2">
+              開始時刻の扱い
+            </Label>
+            <div className="mt-2 flex items-center justify-between p-3 border rounded-md bg-muted/30">
+              <div className="text-sm text-muted-foreground">
+                終了時刻を開始として含む（例: 12:00〜18:00 でも 18:00 開始を許可）
+              </div>
+              <Switch checked={includeEndAsStart} onCheckedChange={setIncludeEndAsStart} />
+            </div>
+          </div>
           <div className="text-sm text-muted-foreground">
             {event.company_name}
           </div>
