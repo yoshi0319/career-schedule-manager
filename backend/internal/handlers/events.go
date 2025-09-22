@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"html"
 	"net/http"
 	"strings"
+	"time"
 
 	"career-schedule-api/internal/models"
 
@@ -193,6 +195,59 @@ func ConfirmEvent(db *gorm.DB) gin.HandlerFunc {
 		if err := c.ShouldBindJSON(&updateData); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
+		}
+
+		// Unmarshal confirmed slot
+		type timeSlot struct {
+			StartTime time.Time `json:"start_time"`
+			EndTime   time.Time `json:"end_time"`
+		}
+
+		var confirmed timeSlot
+		if err := json.Unmarshal(updateData.ConfirmedSlot, &confirmed); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid confirmed_slot format"})
+			return
+		}
+		if confirmed.StartTime.IsZero() || confirmed.EndTime.IsZero() || !confirmed.StartTime.Before(confirmed.EndTime) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid confirmed time range"})
+			return
+		}
+
+		// Validate duration matches event.InterviewDuration
+		durationMinutes := int(confirmed.EndTime.Sub(confirmed.StartTime).Minutes())
+		if durationMinutes != event.InterviewDuration {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Confirmed slot duration does not match interview_duration"})
+			return
+		}
+
+		// Validate confirmed slot fits policy with candidate slots
+		// ポリシー: confirmed.Start は candidate の [start, end] に収まること
+		//          confirmed.End は confirmed.Start + interview_duration であり、candidate.end を超えていてもよい
+		var candidates []timeSlot
+		if len(event.CandidateSlots) > 0 {
+			if err := json.Unmarshal(event.CandidateSlots, &candidates); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse candidate slots"})
+				return
+			}
+		}
+		contained := false
+		for _, cs := range candidates {
+			if !cs.StartTime.IsZero() && !cs.EndTime.IsZero() && !cs.StartTime.After(cs.EndTime) {
+				if (confirmed.StartTime.Equal(cs.StartTime) || confirmed.StartTime.After(cs.StartTime)) &&
+					(confirmed.StartTime.Equal(cs.EndTime) || confirmed.StartTime.Before(cs.EndTime)) {
+					contained = true
+					break
+				}
+			}
+		}
+		if !contained {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Confirmed slot start must be within one of the candidate slots"})
+			return
+		}
+
+		// Optional: normalize status to "confirmed" when confirming
+		if updateData.Status == "" {
+			updateData.Status = "confirmed"
 		}
 
 		event.ConfirmedSlot = updateData.ConfirmedSlot
