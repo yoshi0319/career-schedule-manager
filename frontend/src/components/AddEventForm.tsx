@@ -59,6 +59,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
   const [candidateSlots, setCandidateSlots] = useState<CandidateTimeSlot[]>(editEvent?.candidate_slots || []);
   const [startTimeInput, setStartTimeInput] = useState<Date | undefined>(undefined);
   const [endTimeInput, setEndTimeInput] = useState<Date | undefined>(undefined);
+  const [expandedPreviewIndexSet, setExpandedPreviewIndexSet] = useState<Set<number>>(new Set());
   const [conflicts, setConflicts] = useState<{ hasConflict: boolean; conflictingEvents: Event[] }>({ hasConflict: false, conflictingEvents: [] });
   const [candidateAddError, setCandidateAddError] = useState<string>("");
   const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
@@ -120,6 +121,29 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
     const formDuration = form.watch('interviewDuration');
     return isCustomDuration ? customDuration : formDuration;
   };
+
+  const getLatestStartText = (slot?: CandidateTimeSlot): string => {
+    if (!slot) return '';
+    const duration = getCurrentDuration();
+    const latestStart = new Date(slot.end_time.getTime() - duration * 60000);
+    const latestText = latestStart.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    return `最遅開始 ${latestText}`;
+  };
+
+  const generateDiscreteStartTimes = (slot: CandidateTimeSlot): string[] => {
+    const duration = getCurrentDuration();
+    const start = new Date(slot.start_time);
+    const end = new Date(slot.end_time.getTime() - duration * 60000);
+    const result: string[] = [];
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      result.push(cursor.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }));
+      cursor.setMinutes(cursor.getMinutes() + 5);
+    }
+    return result;
+  };
+
+  const USE_DISCRETE_PREVIEW = false;
 
 
   const addCandidateSlot = (startTime?: Date, endTime?: Date) => {
@@ -484,7 +508,7 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
             <div className="space-y-4">
               <div>
                 <FormLabel className="text-base font-medium">候補日程</FormLabel>
-                <p className="text-sm text-muted-foreground mt-1">面接可能な日時を複数設定してください（5分刻みで選択可能）</p>
+                  <p className="text-sm text-muted-foreground mt-1">面接可能な日時を複数設定してください。候補の終了は「終了時刻上限」です（予定時間を差し引いた最遅開始まで有効）。</p>
               </div>
 
               <Button 
@@ -559,6 +583,9 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-green-600" />
                               <span className="text-sm font-medium">{formatTimeSlotWithDate(slot)}</span>
+                              {!USE_DISCRETE_PREVIEW && (
+                                <span className="text-xs text-muted-foreground">{getLatestStartText(slot)}</span>
+                              )}
                             </div>
                             <div className="flex items-center gap-1">
                               <Button type="button" variant="ghost" size="sm" onClick={() => startEditSlot(index)} disabled={isConfirmed} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
@@ -571,6 +598,47 @@ export const AddEventForm = ({ companies, events, editEvent, onAddEvent, onUpdat
                           </div>
                         ))}
                       </div>
+                      {USE_DISCRETE_PREVIEW && candidateSlots.length > 0 && (
+                        <div className="space-y-2">
+                          {candidateSlots.map((slot, index) => {
+                            const times = generateDiscreteStartTimes(slot);
+                            const isExpanded = expandedPreviewIndexSet.has(index);
+                            const visibleTimes = isExpanded ? times : times.slice(0, 6);
+                            return (
+                              <div key={`preview-${index}`} className="p-2 rounded-md border bg-white">
+                                <div className="text-xs text-muted-foreground mb-2">開始候補</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {visibleTimes.map((t, i) => (
+                                    <span key={i} className="px-2 py-1 text-xs rounded border bg-muted/30">
+                                      {t}
+                                    </span>
+                                  ))}
+                                  {times.length > visibleTimes.length && (
+                                    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs"
+                                      onClick={() => {
+                                        const next = new Set(expandedPreviewIndexSet);
+                                        next.add(index);
+                                        setExpandedPreviewIndexSet(next);
+                                      }}>
+                                      もっと見る
+                                    </Button>
+                                  )}
+                                  {isExpanded && times.length > 6 && (
+                                    <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs"
+                                      onClick={() => {
+                                        const next = new Set(expandedPreviewIndexSet);
+                                        next.delete(index);
+                                        setExpandedPreviewIndexSet(next);
+                                      }}>
+                                      閉じる
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
