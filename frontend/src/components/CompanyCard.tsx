@@ -71,12 +71,12 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <Building2 className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg">{company.name}</CardTitle>
+            <CardTitle className="text-lg truncate">{company.name}</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Badge className={cn(stageColors[company.current_stage])}>
               {stageLabels[company.current_stage]}
             </Badge>
