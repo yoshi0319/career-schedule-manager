@@ -32,6 +32,7 @@ const industries = [
 ];
 
 const stages: { value: SelectionStage; label: string }[] = [
+  { value: 'entry', label: 'エントリー' },
   { value: 'document_review', label: '書類選考' },
   { value: 'first_interview', label: '一次面接' },
   { value: 'second_interview', label: '二次面接' },
@@ -46,7 +47,7 @@ export const AddCompanyForm = ({ onAddCompany }: AddCompanyFormProps) => {
     name: '',
     industry: '',
     position: '',
-    current_stage: 'document_review' as SelectionStage
+    current_stage: 'entry' as SelectionStage
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -58,7 +59,7 @@ export const AddCompanyForm = ({ onAddCompany }: AddCompanyFormProps) => {
       name: '',
       industry: '',
       position: '',
-      current_stage: 'document_review'
+      current_stage: 'entry'
     });
     setOpen(false);
   };
