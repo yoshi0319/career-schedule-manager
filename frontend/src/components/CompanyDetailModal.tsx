@@ -30,6 +30,7 @@ interface CompanyDetailModalProps {
 }
 
 const stageLabels: Record<SelectionStage, string> = {
+  entry: 'エントリー',
   document_review: '書類選考',
   first_interview: '一次面接',
   second_interview: '二次面接',
@@ -39,6 +40,7 @@ const stageLabels: Record<SelectionStage, string> = {
 };
 
 const stageColors: Record<SelectionStage, string> = {
+  entry: 'bg-stone-100 text-stone-700 hover:bg-stone-200',
   document_review: 'bg-slate-200 text-slate-800 hover:bg-slate-300',
   first_interview: 'bg-blue-100 text-blue-700 hover:bg-blue-200',
   second_interview: 'bg-orange-100 text-orange-700 hover:bg-orange-200',
@@ -50,6 +52,8 @@ const stageColors: Record<SelectionStage, string> = {
 // 選択時のステージ色を取得
 const getSelectedStageColor = (stage: SelectionStage): string => {
   switch (stage) {
+    case 'entry':
+      return 'bg-stone-200 text-stone-900 hover:bg-stone-300';
     case 'document_review':
       return 'bg-slate-300 text-slate-900 hover:bg-slate-400'; // 少し濃いグレー背景 + 濃いグレー文字
     case 'first_interview':

@@ -56,6 +56,7 @@ interface EventCardProps {
 }
 
 const eventTypeLabels: Record<EventType, string> = {
+  meeting: '面談',
   interview: '面接',
   info_session: '説明会',
   group_discussion: 'グループディスカッション',

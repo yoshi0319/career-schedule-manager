@@ -22,7 +22,7 @@ import { DateTimePicker } from '@/components/ui/date-time-picker';
 const eventSchema = z.object({
   title: z.string().min(1, '予定名を入力してください'),
   companyId: z.string().min(1, '企業を選択してください'),
-  type: z.enum(['interview', 'info_session', 'group_discussion', 'final_interview'] as const),
+  type: z.enum(['meeting', 'interview', 'info_session', 'group_discussion', 'final_interview'] as const),
   isOnline: z.boolean(),
   location: z.string().optional(),
   notes: z.string().optional(),
@@ -41,6 +41,7 @@ interface AddEventFormProps {
 }
 
 const eventTypeOptions = [
+  { value: 'meeting', label: '面談' },
   { value: 'interview', label: '面接' },
   { value: 'info_session', label: '説明会' },
   { value: 'group_discussion', label: 'グループディスカッション' },

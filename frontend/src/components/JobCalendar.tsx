@@ -86,6 +86,8 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
   // イベントタイプのアイコンを取得
   const getEventTypeIcon = (eventType: string) => {
     switch (eventType) {
+      case 'meeting':
+        return '🤝';
       case 'interview':
       case 'final_interview':
         return '💼';
