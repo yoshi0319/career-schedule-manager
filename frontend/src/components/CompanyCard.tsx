@@ -28,6 +28,7 @@ import {
 import { useState } from 'react';
 
 const selectionStageOptions: SelectionStage[] = [
+  'entry',
   'document_review',
   'first_interview',
   'second_interview',
@@ -45,6 +46,7 @@ interface CompanyCardProps {
 }
 
 const stageLabels: Record<SelectionStage, string> = {
+  entry: 'エントリー',
   document_review: '書類選考',
   first_interview: '一次面接',
   second_interview: '二次面接',
@@ -54,6 +56,7 @@ const stageLabels: Record<SelectionStage, string> = {
 };
 
 const stageColors: Record<SelectionStage, string> = {
+  entry: 'bg-stone-100 text-stone-700 hover:bg-stone-200',
   document_review: 'bg-slate-200 text-slate-800 hover:bg-slate-300',
   first_interview: 'bg-blue-100 text-blue-700 hover:bg-blue-200',
   second_interview: 'bg-orange-100 text-orange-700 hover:bg-orange-200',
