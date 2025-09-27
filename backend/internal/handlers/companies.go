@@ -23,7 +23,7 @@ func GetCompanies(db *gorm.DB) gin.HandlerFunc {
 
 		var companies []models.Company
 		// クエリ最適化: 必要なフィールドのみ選択、インデックス活用
-		if err := db.Select("id, user_id, name, industry, position, current_stage, notes, created_at, updated_at").
+		if err := db.Select("id, user_id, name, industry, position, current_stage, notes, is_archived, archived_at, created_at, updated_at").
 			Where("user_id = ?", userID).
 			Order("updated_at DESC"). // 最新更新順でソート
 			Find(&companies).Error; err != nil {

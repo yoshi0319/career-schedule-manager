@@ -70,6 +70,9 @@ const Index = () => {
     }
   });
 
+  // 企業フィルター状態（デフォルトはアクティブ）
+  const [companyFilter, setCompanyFilter] = useState<'active' | 'offers' | 'archived'>('active');
+
   useEffect(() => {
     try {
       localStorage.setItem('csm_active_tab', activeTab);
@@ -92,6 +95,20 @@ const Index = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCompanyDetail, setShowCompanyDetail] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+
+  // 企業データのフィルタリング
+  const filteredCompanies = useMemo(() => {
+    switch (companyFilter) {
+      case 'active':
+        return companies.filter(company => !company.is_archived && company.current_stage !== 'offer');
+      case 'offers':
+        return companies.filter(company => !company.is_archived && company.current_stage === 'offer');
+      case 'archived':
+        return companies.filter(company => company.is_archived);
+      default:
+        return companies.filter(company => !company.is_archived && company.current_stage !== 'offer');
+    }
+  }, [companies, companyFilter]);
 
   // 今後の予定を取得（ローカル計算）
   const getUpcomingEvents = () => {
@@ -350,8 +367,36 @@ const Index = () => {
           
           <TabsContent value="companies" className="space-y-4 sm:space-y-6">
             <div>
-              <h2 className="text-lg sm:text-xl font-semibold mb-4">応募企業 ({companies.length}社)</h2>
-              {companies.length === 0 ? (
+              {/* 企業フィルターボタン */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Button
+                  variant={companyFilter === 'active' ? 'default' : 'outline'}
+                  onClick={() => setCompanyFilter('active')}
+                  size="sm"
+                  className="text-xs sm:text-sm"
+                >
+                  応募中 ({companies.filter(c => !c.is_archived && c.current_stage !== 'offer').length})
+                </Button>
+                <Button
+                  variant={companyFilter === 'offers' ? 'default' : 'outline'}
+                  onClick={() => setCompanyFilter('offers')}
+                  size="sm"
+                  className="text-xs sm:text-sm"
+                >
+                  内定 ({companies.filter(c => !c.is_archived && c.current_stage === 'offer').length})
+                </Button>
+                <Button
+                  variant={companyFilter === 'archived' ? 'default' : 'outline'}
+                  onClick={() => setCompanyFilter('archived')}
+                  size="sm"
+                  className="text-xs sm:text-sm"
+                >
+                  アーカイブ ({companies.filter(c => c.is_archived).length})
+                </Button>
+              </div>
+              
+              <h2 className="text-lg sm:text-xl font-semibold mb-4">応募企業 ({filteredCompanies.length}社)</h2>
+              {filteredCompanies.length === 0 ? (
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
                     <Building2 className="h-8 sm:h-12 w-8 sm:w-12 text-muted-foreground mb-4" />
@@ -364,7 +409,7 @@ const Index = () => {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {companies.map((company) => (
+                  {filteredCompanies.map((company) => (
                     <CompanyCard
                       key={company.id}
                       company={company}

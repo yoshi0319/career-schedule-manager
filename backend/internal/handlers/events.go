@@ -25,7 +25,7 @@ func GetEvents(db *gorm.DB) gin.HandlerFunc {
 
 		var events []models.Event
 		// クエリ最適化: 必要なフィールドのみ選択、インデックス活用
-		if err := db.Select("id, company_id, user_id, company_name, title, type, status, candidate_slots, confirmed_slot, interview_duration, custom_email_format, location, is_online, notes, created_at, updated_at").
+		if err := db.Select("id, company_id, user_id, company_name, title, type, status, candidate_slots, confirmed_slot, interview_duration, custom_email_format, location, is_online, notes, is_archived, archived_at, created_at, updated_at").
 			Where("user_id = ?", userID).
 			Order("created_at DESC"). // 最新作成順でソート
 			Find(&events).Error; err != nil {
