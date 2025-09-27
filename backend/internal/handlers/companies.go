@@ -4,6 +4,7 @@ import (
 	"html"
 	"net/http"
 	"strings"
+	"time"
 
 	"career-schedule-api/internal/models"
 
@@ -174,5 +175,75 @@ func DeleteCompany(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Company deleted successfully"})
+	}
+}
+
+// ArchiveCompany アーカイブ機能
+func ArchiveCompany(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		companyID := c.Param("id")
+
+		var company models.Company
+		if err := db.Where("id = ? AND user_id = ?", companyID, userID).First(&company).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Company not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch company"})
+			return
+		}
+
+		if company.IsArchived {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Company is already archived"})
+			return
+		}
+
+		company.IsArchived = true
+		now := time.Now()
+		company.ArchivedAt = &now
+
+		if err := db.Save(&company).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to archive company"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":     "Company archived successfully",
+			"archived_at": company.ArchivedAt,
+		})
+	}
+}
+
+// UnarchiveCompany 復元機能
+func UnarchiveCompany(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		companyID := c.Param("id")
+
+		var company models.Company
+		if err := db.Where("id = ? AND user_id = ?", companyID, userID).First(&company).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Company not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch company"})
+			return
+		}
+
+		if !company.IsArchived {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Company is not archived"})
+			return
+		}
+
+		company.IsArchived = false
+		company.ArchivedAt = nil
+
+		if err := db.Save(&company).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unarchive company"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Company unarchived successfully"})
 	}
 }

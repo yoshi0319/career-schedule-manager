@@ -43,6 +43,8 @@ interface CompanyCardProps {
   onViewDetails: () => void;
   onUpdateStage: (companyId: string, stage: SelectionStage) => void;
   onDeleteCompany: (companyId: string) => void;
+  onArchiveCompany?: (companyId: string) => void;
+  onUnarchiveCompany?: (companyId: string) => void;
 }
 
 const stageLabels: Record<SelectionStage, string> = {
@@ -65,7 +67,7 @@ const stageColors: Record<SelectionStage, string> = {
   rejected: 'bg-red-100 text-red-700 hover:bg-red-200'
 };
 
-export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onDeleteCompany }: CompanyCardProps) => {
+export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onDeleteCompany, onArchiveCompany, onUnarchiveCompany }: CompanyCardProps) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const companyEvents = events.filter(event => event.company_id === company.id);
   const confirmedEvents = companyEvents.filter(event => event.status === 'confirmed');
@@ -113,6 +115,28 @@ export const CompanyCard = ({ company, events, onViewDetails, onUpdateStage, onD
                     ))}
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                {!company.is_archived ? (
+                  onArchiveCompany && (
+                    <DropdownMenuItem
+                      onClick={() => onArchiveCompany(company.id)}
+                      className="text-orange-600 focus:text-orange-600"
+                    >
+                      <Building2 className="h-4 w-4 mr-2" />
+                      アーカイブ
+                    </DropdownMenuItem>
+                  )
+                ) : (
+                  onUnarchiveCompany && (
+                    <DropdownMenuItem
+                      onClick={() => onUnarchiveCompany(company.id)}
+                      className="text-blue-600 focus:text-blue-600"
+                    >
+                      <Building2 className="h-4 w-4 mr-2" />
+                      復元
+                    </DropdownMenuItem>
+                  )
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => setShowDeleteConfirm(true)}

@@ -100,6 +100,18 @@ class ApiClient {
     })
   }
 
+  async archiveCompany(id: string): Promise<{ message: string; archived_at: string }> {
+    return this.request<{ message: string; archived_at: string }>(`/api/v1/companies/${id}/archive`, {
+      method: 'PUT',
+    })
+  }
+
+  async unarchiveCompany(id: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/v1/companies/${id}/unarchive`, {
+      method: 'PUT',
+    })
+  }
+
   // Event API
   async getEvents(): Promise<Event[]> {
     return this.request<Event[]>('/api/v1/events')

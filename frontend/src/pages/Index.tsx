@@ -17,6 +17,7 @@ import { JobCalendar } from '@/components/JobCalendar';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
 import { Company, SelectionStage, Event, EventStatus } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiClient } from '@/lib/api';
 
 // スケルトンローディングコンポーネント
 const LoadingSkeleton = () => (
@@ -156,6 +157,32 @@ const Index = () => {
 
   const handleDeleteCompany = (companyId: string) => {
     deleteCompanyMutation.mutate(companyId);
+  };
+
+  const handleArchiveCompany = async (companyId: string) => {
+    try {
+      await apiClient.archiveCompany(companyId);
+      // アーカイブタブに自動移動
+      setCompanyFilter('archived');
+      // データを再取得
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to archive company:', error);
+      alert('アーカイブに失敗しました。');
+    }
+  };
+
+  const handleUnarchiveCompany = async (companyId: string) => {
+    try {
+      await apiClient.unarchiveCompany(companyId);
+      // 応募中タブに自動移動
+      setCompanyFilter('active');
+      // データを再取得
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to unarchive company:', error);
+      alert('復元に失敗しました。');
+    }
   };
 
   const handleEditEvent = (event: Event) => {
@@ -417,6 +444,8 @@ const Index = () => {
                       onViewDetails={() => handleViewCompanyDetails(company)}
                       onUpdateStage={handleUpdateCompanyStage}
                       onDeleteCompany={handleDeleteCompany}
+                      onArchiveCompany={handleArchiveCompany}
+                      onUnarchiveCompany={handleUnarchiveCompany}
                     />
                   ))}
                 </div>

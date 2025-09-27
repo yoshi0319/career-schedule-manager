@@ -130,6 +130,8 @@ func main() {
 			companies.GET("/:id", handlers.GetCompany(db))
 			companies.PUT("/:id", handlers.UpdateCompany(db))
 			companies.DELETE("/:id", handlers.DeleteCompany(db))
+			companies.PUT("/:id/archive", handlers.ArchiveCompany(db))
+			companies.PUT("/:id/unarchive", handlers.UnarchiveCompany(db))
 		}
 
 		// Event routes
