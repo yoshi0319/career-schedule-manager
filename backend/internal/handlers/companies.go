@@ -148,13 +148,32 @@ func UpdateCompany(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// 自動アーカイブ: rejectedステージの場合は自動的にアーカイブ
+		wasArchived := existingCompany.IsArchived
+		if existingCompany.CurrentStage == "rejected" && !existingCompany.IsArchived {
+			existingCompany.IsArchived = true
+			now := time.Now()
+			existingCompany.ArchivedAt = &now
+		}
+
 		// データベースを更新
 		if err := db.Save(&existingCompany).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update company"})
 			return
 		}
 
-		c.JSON(http.StatusOK, existingCompany)
+		// レスポンスに自動アーカイブ情報を含める
+		response := existingCompany
+		if existingCompany.CurrentStage == "rejected" && !wasArchived {
+			// 自動アーカイブされたことを示すフラグを追加
+			c.JSON(http.StatusOK, gin.H{
+				"company":       response,
+				"auto_archived": true,
+				"message":       "Company updated and automatically archived due to rejected status",
+			})
+		} else {
+			c.JSON(http.StatusOK, response)
+		}
 	}
 }
 

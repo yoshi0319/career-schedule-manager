@@ -70,19 +70,42 @@ export const useUpdateCompany = () => {
   return useMutation({
     mutationFn: ({ id, company }: { id: string; company: Partial<Company> }) =>
       apiClient.updateCompany(id, company),
-    onSuccess: (updatedCompany) => {
-      // オプティミスティックアップデートで即座にUIを更新
-      queryClient.setQueryData(['companies'], (oldData: Company[] | undefined) => {
-        if (!oldData) return oldData
-        return oldData.map(c => c.id === updatedCompany.id ? updatedCompany : c)
-      })
-      // サーバーの最新状態と同期
-      queryClient.invalidateQueries({ queryKey: ['companies'] })
-      
-      toast({
-        title: "企業を更新しました",
-        description: "企業情報が正常に更新されました。",
-      })
+    onSuccess: (response) => {
+      // レスポンスが自動アーカイブされた場合の処理
+      if (response && typeof response === 'object' && 'auto_archived' in response) {
+        const { company, auto_archived, message } = response as any
+        
+        // サーバーの最新状態と同期
+        queryClient.invalidateQueries({ queryKey: ['companies'] })
+        
+        if (auto_archived) {
+          toast({
+            title: "企業を更新しました",
+            description: "企業のステージを「不合格」に変更し、自動的にアーカイブしました。",
+          })
+        } else {
+          toast({
+            title: "企業を更新しました",
+            description: "企業情報が正常に更新されました。",
+          })
+        }
+      } else {
+        // 通常の更新の場合
+        const updatedCompany = response as Company
+        
+        // オプティミスティックアップデートで即座にUIを更新
+        queryClient.setQueryData(['companies'], (oldData: Company[] | undefined) => {
+          if (!oldData) return oldData
+          return oldData.map(c => c.id === updatedCompany.id ? updatedCompany : c)
+        })
+        // サーバーの最新状態と同期
+        queryClient.invalidateQueries({ queryKey: ['companies'] })
+        
+        toast({
+          title: "企業を更新しました",
+          description: "企業情報が正常に更新されました。",
+        })
+      }
     },
     onError: (error) => {
       toast({
