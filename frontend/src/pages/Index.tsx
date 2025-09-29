@@ -73,7 +73,7 @@ const Index = () => {
   });
 
   const [companyFilter, setCompanyFilter] = useState<'active' | 'offers' | 'archived'>('active');
-  const [companySort, setCompanySort] = useState<'name_asc' | 'name_desc' | 'updated_desc' | 'updated_asc'>('updated_desc');
+  const [companySort, setCompanySort] = useState<'name_asc' | 'name_desc' | 'updated_desc' | 'updated_asc' | 'stage_asc' | 'stage_desc'>('updated_desc');
 
   useEffect(() => {
     try {
@@ -113,11 +113,24 @@ const Index = () => {
 
   const sortedCompanies = useMemo(() => {
     const list = [...filteredCompanies];
+    const stageOrder: Record<SelectionStage, number> = {
+      entry: 1,
+      document_review: 2,
+      first_interview: 3,
+      second_interview: 4,
+      final_interview: 5,
+      offer: 6,
+      rejected: 7,
+    };
     switch (companySort) {
       case 'name_asc':
         return list.sort((a, b) => a.name.localeCompare(b.name));
       case 'name_desc':
         return list.sort((a, b) => b.name.localeCompare(a.name));
+      case 'stage_asc':
+        return list.sort((a, b) => stageOrder[a.current_stage] - stageOrder[b.current_stage]);
+      case 'stage_desc':
+        return list.sort((a, b) => stageOrder[b.current_stage] - stageOrder[a.current_stage]);
       case 'updated_asc':
         return list.sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime());
       case 'updated_desc':
@@ -444,6 +457,8 @@ const Index = () => {
                       <SelectItem value="updated_asc">更新日が古い順</SelectItem>
                       <SelectItem value="name_asc">名前の昇順</SelectItem>
                       <SelectItem value="name_desc">名前の降順</SelectItem>
+                      <SelectItem value="stage_asc">ステージの昇順</SelectItem>
+                      <SelectItem value="stage_desc">ステージの降順</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
