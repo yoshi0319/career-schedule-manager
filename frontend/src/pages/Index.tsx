@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Building2, Clock, LogOut } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthForm } from '@/components/AuthForm';
 import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
@@ -71,8 +72,8 @@ const Index = () => {
     }
   });
 
-  // 企業フィルター状態（デフォルトはアクティブ）
   const [companyFilter, setCompanyFilter] = useState<'active' | 'offers' | 'archived'>('active');
+  const [companySort, setCompanySort] = useState<'name_asc' | 'name_desc' | 'updated_desc' | 'updated_asc'>('updated_desc');
 
   useEffect(() => {
     try {
@@ -97,7 +98,6 @@ const Index = () => {
   const [showCompanyDetail, setShowCompanyDetail] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
-  // 企業データのフィルタリング
   const filteredCompanies = useMemo(() => {
     switch (companyFilter) {
       case 'active':
@@ -110,6 +110,21 @@ const Index = () => {
         return companies.filter(company => !company.is_archived && company.current_stage !== 'offer');
     }
   }, [companies, companyFilter]);
+
+  const sortedCompanies = useMemo(() => {
+    const list = [...filteredCompanies];
+    switch (companySort) {
+      case 'name_asc':
+        return list.sort((a, b) => a.name.localeCompare(b.name));
+      case 'name_desc':
+        return list.sort((a, b) => b.name.localeCompare(a.name));
+      case 'updated_asc':
+        return list.sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime());
+      case 'updated_desc':
+      default:
+        return list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    }
+  }, [filteredCompanies, companySort]);
 
   // 今後の予定を取得（ローカル計算）
   const getUpcomingEvents = () => {
@@ -394,7 +409,6 @@ const Index = () => {
           
           <TabsContent value="companies" className="space-y-4 sm:space-y-6">
             <div>
-              {/* 企業フィルターボタン */}
               <div className="flex flex-wrap gap-2 mb-4">
                 <Button
                   variant={companyFilter === 'active' ? 'default' : 'outline'}
@@ -420,6 +434,19 @@ const Index = () => {
                 >
                   アーカイブ ({companies.filter(c => c.is_archived).length})
                 </Button>
+                <div className="ml-auto w-full sm:w-64 mt-2 sm:mt-0">
+                  <Select value={companySort} onValueChange={(v) => setCompanySort(v as any)}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="並び替え" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="updated_desc">更新日が新しい順</SelectItem>
+                      <SelectItem value="updated_asc">更新日が古い順</SelectItem>
+                      <SelectItem value="name_asc">名前の昇順</SelectItem>
+                      <SelectItem value="name_desc">名前の降順</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
               <h2 className="text-lg sm:text-xl font-semibold mb-4">応募企業 ({filteredCompanies.length}社)</h2>
@@ -436,7 +463,7 @@ const Index = () => {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {filteredCompanies.map((company) => (
+                  {sortedCompanies.map((company) => (
                     <CompanyCard
                       key={company.id}
                       company={company}
