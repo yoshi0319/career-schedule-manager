@@ -79,6 +79,7 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRevertConfirm, setShowRevertConfirm] = useState(false);
   
   const handleConfirmSlot = (selectedSlot: TimeSlot) => {
     onUpdateStatus(event.id, 'confirmed', selectedSlot);
@@ -243,7 +244,7 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onUpdateStatus(event.id, 'candidate')}
+                onClick={() => setShowRevertConfirm(true)}
                 className="text-gray-600 hover:text-gray-700"
               >
                 候補に戻す
@@ -289,6 +290,29 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showRevertConfirm} onOpenChange={setShowRevertConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>候補日に戻しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定済みの予定を候補日に戻します。必要に応じて再度確定できます。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onUpdateStatus(event.id, 'candidate');
+                setShowRevertConfirm(false);
+              }}
+              className="bg-foreground text-background hover:bg-foreground/90"
+            >
+              戻す
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
