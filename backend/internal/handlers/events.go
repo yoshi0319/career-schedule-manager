@@ -168,6 +168,80 @@ func DeleteEvent(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// ArchiveEvent 手動アーカイブ
+func ArchiveEvent(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
+		userID := c.GetString("user_id")
+		eventID := c.Param("id")
+
+		var event models.Event
+		if err := db.Where("id = ? AND user_id = ?", eventID, userID).First(&event).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch event"})
+			return
+		}
+
+		if event.IsArchived {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Event is already archived"})
+			return
+		}
+
+		event.IsArchived = true
+		now := time.Now()
+		event.ArchivedAt = &now
+
+		if err := db.Save(&event).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to archive event"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Event archived successfully", "archived_at": event.ArchivedAt})
+	}
+}
+
+// UnarchiveEvent 復元
+func UnarchiveEvent(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
+		userID := c.GetString("user_id")
+		eventID := c.Param("id")
+
+		var event models.Event
+		if err := db.Where("id = ? AND user_id = ?", eventID, userID).First(&event).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch event"})
+			return
+		}
+
+		if !event.IsArchived {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Event is not archived"})
+			return
+		}
+
+		event.IsArchived = false
+		event.ArchivedAt = nil
+
+		if err := db.Save(&event).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unarchive event"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Event unarchived successfully"})
+	}
+}
 func ConfirmEvent(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if db == nil {
@@ -262,6 +336,50 @@ func ConfirmEvent(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+// AutoArchiveEvents 確定・キャンセル済みの予定を翌日に自動アーカイブ
+// 基準:
+// - status = confirmed: confirmed_slot.end_time の翌日以降になったもの
+// - status = rejected: updated_at の翌日以降になったもの
+// いずれも is_archived = false が対象
+func AutoArchiveEvents(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if db == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not connected"})
+			return
+		}
+		userID := c.GetString("user_id")
+
+		// タイムゾーンは東京固定。JSTの当日0時基準で判定
+		// JSONB の confirmed_slot->>'end_time' を timestamptz にキャストし、JSTに変換して比較
+		sql := `
+            UPDATE events
+            SET is_archived = TRUE,
+                archived_at = NOW()
+            WHERE user_id = ?
+              AND is_archived = FALSE
+              AND (
+                    (
+                      status = 'confirmed'
+                      AND confirmed_slot IS NOT NULL
+                      AND (confirmed_slot->>'end_time') IS NOT NULL
+                      AND (((confirmed_slot->>'end_time')::timestamptz AT TIME ZONE 'Asia/Tokyo') < date_trunc('day', (now() AT TIME ZONE 'Asia/Tokyo')))
+                    )
+                 OR (
+                      status = 'rejected'
+                      AND ((updated_at AT TIME ZONE 'Asia/Tokyo') < date_trunc('day', (now() AT TIME ZONE 'Asia/Tokyo')))
+                    )
+              )
+        `
+
+		tx := db.Exec(sql, userID)
+		if tx.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to auto-archive events"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"updated": tx.RowsAffected})
+	}
+}
 func UpdateEventEmailFormat(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if db == nil {

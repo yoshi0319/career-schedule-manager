@@ -150,6 +150,24 @@ class ApiClient {
       body: JSON.stringify({ custom_email_format: customEmailFormat }),
     })
   }
+
+  async archiveEvent(id: string): Promise<{ message: string; archived_at: string }> {
+    return this.request<{ message: string; archived_at: string }>(`/api/v1/events/${id}/archive`, {
+      method: 'PUT',
+    })
+  }
+
+  async unarchiveEvent(id: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/v1/events/${id}/unarchive`, {
+      method: 'PUT',
+    })
+  }
+
+  async runAutoArchive(): Promise<{ updated: number }> {
+    return this.request<{ updated: number }>(`/api/v1/events/auto-archive/run`, {
+      method: 'PUT',
+    })
+  }
 }
 
 export const apiClient = new ApiClient()

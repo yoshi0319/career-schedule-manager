@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, MapPin, Video, Edit, Trash2, MoreVertical, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, MapPin, Video, Edit, Trash2, MoreVertical, ExternalLink, Archive, Undo2 } from 'lucide-react';
 import { Event, EventType, EventStatus, TimeSlot, Company } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatTimeSlotWithDate } from '@/lib/conflictDetection';
@@ -53,6 +53,8 @@ interface EventCardProps {
   onUpdateStatus: (eventId: string, status: EventStatus, confirmed_slot?: TimeSlot) => void;
   onEditEvent: (event: Event) => void;
   onDeleteEvent: (eventId: string) => void;
+  onArchiveEvent?: (eventId: string) => void;
+  onUnarchiveEvent?: (eventId: string) => void;
 }
 
 const eventTypeLabels: Record<EventType, string> = {
@@ -75,7 +77,7 @@ const statusColors: Record<EventStatus, string> = {
   rejected: 'bg-rejected text-rejected-foreground hover:bg-rejected/80'
 };
 
-export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditEvent, onDeleteEvent }: EventCardProps) => {
+export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditEvent, onDeleteEvent, onArchiveEvent, onUnarchiveEvent }: EventCardProps) => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -142,6 +144,18 @@ export const EventCard = ({ event, allEvents, companies, onUpdateStatus, onEditE
                   <Edit className="h-4 w-4 mr-2" />
                   編集
                 </DropdownMenuItem>
+                {!event.is_archived && onArchiveEvent && (
+                  <DropdownMenuItem onClick={() => onArchiveEvent(event.id)}>
+                    <Archive className="h-4 w-4 mr-2" />
+                    アーカイブ
+                  </DropdownMenuItem>
+                )}
+                {event.is_archived && onUnarchiveEvent && (
+                  <DropdownMenuItem onClick={() => onUnarchiveEvent(event.id)}>
+                    <Undo2 className="h-4 w-4 mr-2" />
+                    復元
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => setShowDeleteConfirm(true)}

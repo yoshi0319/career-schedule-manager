@@ -81,6 +81,19 @@ const Index = () => {
     } catch {}
   }, [activeTab]);
 
+  useEffect(() => {
+    const key = 'csm_last_auto_archive_run';
+    const today = new Date();
+    const ymd = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+    try {
+      const last = localStorage.getItem(key);
+      if (last !== ymd) {
+        apiClient.runAutoArchive().catch(() => {});
+        localStorage.setItem(key, ymd);
+      }
+    } catch {}
+  }, []);
+
   // API データ取得（フック順序を維持）
   const { data: companies = [], isLoading: companiesLoading } = useCompanies();
   const { data: events = [], isLoading: eventsLoading } = useEvents();
@@ -97,6 +110,7 @@ const Index = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCompanyDetail, setShowCompanyDetail] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [eventFilter, setEventFilter] = useState<'active' | 'archived'>('active');
 
   const filteredCompanies = useMemo(() => {
     switch (companyFilter) {
@@ -159,6 +173,10 @@ const Index = () => {
   const upcomingEvents = useMemo(() => getUpcomingEvents(), [events]);
   const confirmedEventsCount = useMemo(() => events.filter(e => e.status === 'confirmed').length, [events]);
   const candidateEventsCount = useMemo(() => events.filter(e => e.status === 'candidate').length, [events]);
+  const filteredEvents = useMemo(() => {
+    if (eventFilter === 'archived') return events.filter(e => e.is_archived);
+    return events.filter(e => !e.is_archived);
+  }, [events, eventFilter]);
 
   // 認証チェック（フック後に実行）
   if (loading) {
@@ -223,6 +241,28 @@ const Index = () => {
 
   const handleDeleteEvent = (eventId: string) => {
     deleteEventMutation.mutate(eventId);
+  };
+
+  const handleArchiveEvent = async (eventId: string) => {
+    try {
+      await apiClient.archiveEvent(eventId);
+      setEventFilter('archived');
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to archive event:', error);
+      alert('予定のアーカイブに失敗しました。');
+    }
+  };
+
+  const handleUnarchiveEvent = async (eventId: string) => {
+    try {
+      await apiClient.unarchiveEvent(eventId);
+      setEventFilter('active');
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to unarchive event:', error);
+      alert('予定の復元に失敗しました。');
+    }
   };
 
   const handleAddCompany = (companyData: Omit<Company, 'id' | 'created_at' | 'updated_at'>) => {
@@ -517,19 +557,37 @@ const Index = () => {
                   />
                 )}
               </div>
-              {events.length === 0 ? (
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Button
+                  variant={eventFilter === 'active' ? 'default' : 'outline'}
+                  onClick={() => setEventFilter('active')}
+                  size="sm"
+                  className="text-xs sm:text-sm"
+                >
+                  全て ({events.filter(e => !e.is_archived).length})
+                </Button>
+                <Button
+                  variant={eventFilter === 'archived' ? 'default' : 'outline'}
+                  onClick={() => setEventFilter('archived')}
+                  size="sm"
+                  className="text-xs sm:text-sm"
+                >
+                    アーカイブ ({events.filter(e => e.is_archived).length})
+                </Button>
+              </div>
+              {filteredEvents.length === 0 ? (
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
                     <Calendar className="h-8 sm:h-12 w-8 sm:w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-base sm:text-lg font-medium mb-2">まだ予定がありません</h3>
+                    <h3 className="text-base sm:text-lg font-medium mb-2">該当する予定がありません</h3>
                     <p className="text-muted-foreground text-center text-sm sm:text-base">
-                      企業を追加して面接や説明会の予定を管理しましょう
+                      条件を変更するか、新しい予定を追加してください
                     </p>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  {events.map((event) => (
+                  {filteredEvents.map((event) => (
                     <EventCard
                       key={event.id}
                       event={event}
@@ -538,6 +596,8 @@ const Index = () => {
                       onUpdateStatus={handleUpdateEventStatus}
                       onEditEvent={handleEditEvent}
                       onDeleteEvent={handleDeleteEvent}
+                      onArchiveEvent={handleArchiveEvent}
+                      onUnarchiveEvent={handleUnarchiveEvent}
                     />
                   ))}
                 </div>

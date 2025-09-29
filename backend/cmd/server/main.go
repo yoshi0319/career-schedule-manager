@@ -144,6 +144,9 @@ func main() {
 			events.DELETE("/:id", handlers.DeleteEvent(db))
 			events.PUT("/:id/confirm", handlers.ConfirmEvent(db))
 			events.PUT("/:id/email-format", handlers.UpdateEventEmailFormat(db))
+			events.PUT("/:id/archive", handlers.ArchiveEvent(db))
+			events.PUT("/:id/unarchive", handlers.UnarchiveEvent(db))
+			events.PUT("/auto-archive/run", handlers.AutoArchiveEvents(db))
 		}
 	}
 
