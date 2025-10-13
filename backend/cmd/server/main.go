@@ -20,10 +20,11 @@ import (
 )
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
+	// Load environment variables (.env as base, .env.local overrides if present)
+	if err := godotenv.Load(".env"); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
+	_ = godotenv.Overload(".env.local")
 
 	// Initialize configuration
 	cfg := config.New()
