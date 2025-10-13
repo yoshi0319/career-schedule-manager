@@ -7,7 +7,7 @@ import { Event, Company, TimeSlot } from '@/types';
 import { cn } from '@/lib/utils';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { exportMultipleToGoogleCalendar } from '@/lib/googleCalendar';
+// import { exportMultipleToGoogleCalendar } from '@/lib/googleCalendar';
 
 interface JobCalendarProps {
   events: Event[];
@@ -40,19 +40,7 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
 
   const upcomingEvents = getUpcomingEvents();
 
-  // 一括Googleカレンダーエクスポート
-  const handleBulkExport = () => {
-    const confirmedEvents = events.filter(event => event.confirmed_slot);
-    if (confirmedEvents.length === 0) {
-      alert('確定した予定がありません');
-      return;
-    }
-    
-    const count = exportMultipleToGoogleCalendar(events, companies);
-    if (count > 0) {
-      alert(`${count}件の予定をGoogleカレンダーに登録します。\n複数のタブが開かれるので、各タブで登録を完了してください。`);
-    }
-  };
+  // 一括Googleカレンダーエクスポートは不要のため削除
 
   // 月の開始日から終了日までの日付を取得
   const monthStart = startOfMonth(currentMonth);
@@ -163,15 +151,7 @@ export const JobCalendar = ({ events, companies }: JobCalendarProps) => {
                 <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                 今後の確定予定
               </CardTitle>
-              <Button
-                size="sm"
-                onClick={handleBulkExport}
-                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 w-full sm:w-auto text-xs sm:text-sm"
-              >
-                <CalendarIcon className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">すべてGoogleカレンダーに追加</span>
-                <span className="sm:hidden">一括追加</span>
-              </Button>
+              {/* 一括Googleカレンダー追加ボタンは仕様により削除 */}
             </div>
           </CardHeader>
           <CardContent>

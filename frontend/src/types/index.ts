@@ -9,6 +9,8 @@ export interface Company {
   position: string;
   current_stage: SelectionStage;
   notes?: string;
+  is_archived: boolean;
+  archived_at?: Date;
   created_at: Date;
   updated_at: Date;
 }
@@ -44,6 +46,8 @@ export interface Event {
   location?: string;
   is_online: boolean;
   notes?: string;
+  is_archived: boolean;
+  archived_at?: Date;
   created_at: Date;
   updated_at: Date;
 }

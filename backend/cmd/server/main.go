@@ -20,10 +20,11 @@ import (
 )
 
 func main() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
+	// Load environment variables (.env as base, .env.local overrides if present)
+	if err := godotenv.Load(".env"); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
+	_ = godotenv.Overload(".env.local")
 
 	// Initialize configuration
 	cfg := config.New()
@@ -130,6 +131,8 @@ func main() {
 			companies.GET("/:id", handlers.GetCompany(db))
 			companies.PUT("/:id", handlers.UpdateCompany(db))
 			companies.DELETE("/:id", handlers.DeleteCompany(db))
+			companies.PUT("/:id/archive", handlers.ArchiveCompany(db))
+			companies.PUT("/:id/unarchive", handlers.UnarchiveCompany(db))
 		}
 
 		// Event routes
@@ -142,6 +145,9 @@ func main() {
 			events.DELETE("/:id", handlers.DeleteEvent(db))
 			events.PUT("/:id/confirm", handlers.ConfirmEvent(db))
 			events.PUT("/:id/email-format", handlers.UpdateEventEmailFormat(db))
+			events.PUT("/:id/archive", handlers.ArchiveEvent(db))
+			events.PUT("/:id/unarchive", handlers.UnarchiveEvent(db))
+			events.PUT("/auto-archive/run", handlers.AutoArchiveEvents(db))
 		}
 	}
 

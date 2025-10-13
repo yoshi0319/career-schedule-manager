@@ -8,15 +8,17 @@ import (
 )
 
 type Company struct {
-	ID           string    `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID       string    `json:"user_id" gorm:"type:uuid;not null;index"`
-	Name         string    `json:"name" gorm:"not null" validate:"required,min=1,max=100"`
-	Industry     string    `json:"industry" validate:"max=50"`
-	Position     string    `json:"position" validate:"max=100"`
-	CurrentStage string    `json:"current_stage" gorm:"column:current_stage;not null" validate:"required,oneof=entry document_review first_interview second_interview final_interview offer rejected"`
-	Notes        string    `json:"notes" validate:"max=1000"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           string     `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID       string     `json:"user_id" gorm:"type:uuid;not null;index"`
+	Name         string     `json:"name" gorm:"not null" validate:"required,min=1,max=100"`
+	Industry     string     `json:"industry" validate:"max=50"`
+	Position     string     `json:"position" validate:"max=100"`
+	CurrentStage string     `json:"current_stage" gorm:"column:current_stage;not null" validate:"required,oneof=entry document_review first_interview second_interview final_interview offer rejected"`
+	Notes        string     `json:"notes" validate:"max=1000"`
+	IsArchived   bool       `json:"is_archived" gorm:"default:false;index"`
+	ArchivedAt   *time.Time `json:"archived_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 type Event struct {
@@ -34,6 +36,8 @@ type Event struct {
 	Location          string         `json:"location" validate:"max=200"`
 	IsOnline          bool           `json:"is_online" gorm:"column:is_online;default:false"`
 	Notes             string         `json:"notes" validate:"max=1000"`
+	IsArchived        bool           `json:"is_archived" gorm:"default:false;index"`
+	ArchivedAt        *time.Time     `json:"archived_at"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
 }

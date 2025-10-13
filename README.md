@@ -47,7 +47,3 @@ cp env.example .env
 # .envを編集
 go run cmd/server/main.go
 ```
-
-## ライセンス
-
-MIT License

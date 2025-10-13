@@ -100,6 +100,18 @@ class ApiClient {
     })
   }
 
+  async archiveCompany(id: string): Promise<{ message: string; archived_at: string }> {
+    return this.request<{ message: string; archived_at: string }>(`/api/v1/companies/${id}/archive`, {
+      method: 'PUT',
+    })
+  }
+
+  async unarchiveCompany(id: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/v1/companies/${id}/unarchive`, {
+      method: 'PUT',
+    })
+  }
+
   // Event API
   async getEvents(): Promise<Event[]> {
     return this.request<Event[]>('/api/v1/events')
@@ -136,6 +148,24 @@ class ApiClient {
     return this.request<{ message: string; custom_email_format: string }>(`/api/v1/events/${id}/email-format`, {
       method: 'PUT',
       body: JSON.stringify({ custom_email_format: customEmailFormat }),
+    })
+  }
+
+  async archiveEvent(id: string): Promise<{ message: string; archived_at: string }> {
+    return this.request<{ message: string; archived_at: string }>(`/api/v1/events/${id}/archive`, {
+      method: 'PUT',
+    })
+  }
+
+  async unarchiveEvent(id: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/v1/events/${id}/unarchive`, {
+      method: 'PUT',
+    })
+  }
+
+  async runAutoArchive(): Promise<{ updated: number }> {
+    return this.request<{ updated: number }>(`/api/v1/events/auto-archive/run`, {
+      method: 'PUT',
     })
   }
 }
