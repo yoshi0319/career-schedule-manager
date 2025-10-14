@@ -18,6 +18,12 @@ type SupabaseJWTClaims struct {
 
 func Auth(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// OPTIONSリクエスト（プリフライト）は認証をスキップ
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
