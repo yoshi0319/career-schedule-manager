@@ -84,6 +84,10 @@ func main() {
 	if cfg.ProductionFrontendURL != "" {
 		corsConfig.AllowOrigins = append(corsConfig.AllowOrigins, cfg.ProductionFrontendURL)
 	}
+	// デバッグ用: 環境変数の値をログ出力
+	log.Printf("CORS AllowOrigins: %v", corsConfig.AllowOrigins)
+	log.Printf("FrontendURL: %s", cfg.FrontendURL)
+	log.Printf("ProductionFrontendURL: %s", cfg.ProductionFrontendURL)
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Cache-Control"}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	corsConfig.AllowCredentials = true

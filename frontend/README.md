@@ -40,6 +40,18 @@ Vite は以下の優先順で環境変数ファイルを読み込みます（後
 - `VITE_API_BASE_URL`
 - （任意）`VITE_DEBUG_PERFORMANCE`, `VITE_DEBUG_GOOGLE_CALENDAR`
 
+### 本番デプロイ（Vercel）
+本番環境では以下の環境変数をVercelの環境変数として設定してください：
+
+- `VITE_SUPABASE_URL`: SupabaseプロジェクトURL
+- `VITE_SUPABASE_ANON_KEY`: Supabase anonキー
+- `VITE_API_BASE_URL`: Cloud RunのAPI URL（例: `https://career-schedule-api-xxxxx-uc.a.run.app`）
+
+設定手順:
+1. Vercelダッシュボード → プロジェクト → Settings → Environment Variables
+2. 上記のキーと値を設定
+3. 再デプロイ
+
 ## 主要機能
 
 - 認証（メール/パスワード、Google OAuth）
