@@ -74,23 +74,17 @@ func main() {
 		c.Next()
 	})
 
-	// CORS configuration
+	// CORS configuration - 一時的に寛容な設定
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{
-		"http://localhost:5173",
-		"http://localhost:5174", // Viteは時々別ポートを使用
-		cfg.FrontendURL,
-	}
-	if cfg.ProductionFrontendURL != "" {
-		corsConfig.AllowOrigins = append(corsConfig.AllowOrigins, cfg.ProductionFrontendURL)
-	}
-	// デバッグ用: 環境変数の値をログ出力
-	log.Printf("CORS AllowOrigins: %v", corsConfig.AllowOrigins)
-	log.Printf("FrontendURL: %s", cfg.FrontendURL)
-	log.Printf("ProductionFrontendURL: %s", cfg.ProductionFrontendURL)
+	corsConfig.AllowAllOrigins = true // 一時的に全てのオリジンを許可
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Cache-Control"}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	corsConfig.AllowCredentials = true
+
+	// デバッグ用: 環境変数の値をログ出力
+	log.Printf("CORS AllowAllOrigins: %v", corsConfig.AllowAllOrigins)
+	log.Printf("FrontendURL: %s", cfg.FrontendURL)
+	log.Printf("ProductionFrontendURL: %s", cfg.ProductionFrontendURL)
 	r.Use(cors.New(corsConfig))
 
 	// Rate limiting middleware (開発環境では緩和)
@@ -123,8 +117,32 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok", "service": "career-schedule-api"})
 	})
 
+	// Debug endpoint (public) - 認証情報を確認
+	r.GET("/debug/auth", func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		c.JSON(200, gin.H{
+			"auth_header":       authHeader,
+			"has_auth":          authHeader != "",
+			"jwt_secret_set":    cfg.SupabaseJWTSecret != "",
+			"jwt_secret_length": len(cfg.SupabaseJWTSecret),
+		})
+	})
+
 	// API routes
 	api := r.Group("/api/v1")
+	// OPTIONSリクエスト（プリフライト）は認証をスキップ
+	api.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(200)
+	})
+	// Debug endpoint for token validation (認証付き)
+	api.GET("/debug/token", middleware.Auth(cfg.SupabaseJWTSecret), func(c *gin.Context) {
+		userID := c.GetString("user_id")
+		c.JSON(200, gin.H{
+			"user_id": userID,
+			"message": "Token is valid",
+		})
+	})
+
 	api.Use(middleware.Auth(cfg.SupabaseJWTSecret))
 	{
 		// Company routes
